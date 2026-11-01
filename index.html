@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Snow System Design</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>Project Snow <span>System design</span></h1>
+  <nav class="tabs" aria-label="Views">
+    <button type="button" id="tab-diagram" class="tab" aria-pressed="true">Diagram</button>
+    <button type="button" id="tab-progress" class="tab" aria-pressed="false">Progress</button>
+  </nav>
+  <div class="summary">
+    <div class="bar" aria-hidden="true"><i id="overall-bar"></i></div>
+    <span id="overall-text"></span>
+    <span id="sync" class="sync"></span>
+  </div>
+  <button type="button" id="about" class="btn">About</button>
+</header>
+
+<div id="problems" class="problems" hidden></div>
+
+<main id="view-diagram" class="view">
+  <div id="canvas" class="canvas">
+    <div id="world" class="world"><svg id="edges" class="edges" aria-hidden="true"></svg></div>
+  </div>
+  <div class="tools">
+    <button type="button" id="expand-all" class="btn">Expand all</button>
+    <button type="button" id="collapse-all" class="btn">Collapse all</button>
+    <button type="button" id="fit" class="btn">Fit</button>
+    <button type="button" id="zoom-out" class="btn" aria-label="Zoom out">−</button>
+    <button type="button" id="zoom-in" class="btn" aria-label="Zoom in">+</button>
+  </div>
+  <div class="legend" aria-label="Arrow types">
+    <span class="k-gold"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4"/></svg>Gold data</span>
+    <span class="k-data"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4"/></svg>Data</span>
+    <span class="k-control"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4"/></svg>Control</span>
+    <span class="k-secret"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4"/></svg>Secret</span>
+    <span class="k-agent"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4"/></svg>Agent</span>
+  </div>
+  <aside id="panel" class="panel" hidden aria-label="Details">
+    <button type="button" id="panel-close" class="panel-close" aria-label="Close details">×</button>
+    <div id="panel-body"></div>
+  </aside>
+</main>
+
+<main id="view-progress" class="view sheet-view" hidden>
+  <div id="module-summary" class="module-summary"></div>
+  <div class="sheet-tools">
+    <input id="filter-text" type="search" placeholder="Filter by name, owner or notes" aria-label="Filter components">
+    <select id="filter-module" aria-label="Filter by module"></select>
+    <select id="filter-status" aria-label="Filter by status"></select>
+    <a id="open-sheet" class="btn" target="_blank" rel="noopener" hidden>Open Google Sheet</a>
+  </div>
+  <div class="sheet-wrap">
+    <table class="sheet">
+      <thead><tr><th>Done</th><th>Component</th><th>Module</th><th>Status</th><th>Owner</th><th>Notes</th></tr></thead>
+      <tbody id="sheet-body"></tbody>
+    </table>
+    <p id="sheet-empty" class="sheet-empty" hidden>No components match these filters.</p>
+  </div>
+</main>
+
+<script src="vendor/marked.umd.js"></script>
+<script src="vendor/purify.min.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
