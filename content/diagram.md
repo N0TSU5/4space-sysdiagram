@@ -1,8 +1,9 @@
 # Diagram structure
 
-This file controls which boxes and arrows appear on the diagram. The text inside
-each box or arrow lives in the Markdown file named in its `File` column, relative
-to the `content/` folder.
+This file controls which boxes and arrows appear on the diagram. Each box's `File`
+gives its starting text, which is copied to the Google Sheet the first time the page
+connects. After that, use the page's Edit button to change box text. Arrow text stays
+in the file named in its `File` column. Paths are relative to the `content/` folder.
 
 See `README.md` for how to add, move or remove something.
 
@@ -24,15 +25,13 @@ See `README.md` for how to add, move or remove something.
 | p3-gate | dataproc | P3.15 Privacy gate and release boundary | | Pipeline stage | 0 | 4 | 1 | orion/stage-p3-privacy-gate.md |
 | merlin | | Merlin | FourthSpace core platform and engine | Module | 1 | 0 | 1 | merlin/merlin.md |
 | lakehouse | merlin | GCP lakehouse store | gold@datalake4us, Apache Iceberg | Storage | 0 | 0 | 1 | merlin/lakehouse.md |
-| foundry | merlin | Palantir Foundry | Ontology and integration steps | Platform | 1 | 0 | 1 | merlin/foundry.md |
-| data-connection | foundry | 1. Data Connection | fourthspace_adls / GCS | Foundry step | 0 | 0 | 1 | merlin/foundry-data-connection.md |
-| pipeline-builder | foundry | 2. Pipeline Builder transforms | Virtual Tables, geo types | Foundry step | 0 | 1 | 1 | merlin/foundry-pipeline-builder.md |
-| ontology | foundry | 3. Ontology object mapping | 9 object types, 10 link types | Foundry step | 0 | 2 | 1 | merlin/foundry-ontology.md |
-| compute-module | foundry | 4. Compute Module | querySites | Foundry step | 1 | 0 | 1 | merlin/foundry-compute-module.md |
-| workshop | foundry | 5. Workshop and AIP Logic | snowRequestRanking, explanations | Foundry step | 1 | 1 | 1 | merlin/foundry-workshop-aip.md |
+| foundry | merlin | Palantir Foundry | Zero-copy projection into the Ontology | Platform | 1 | 0 | 1 | merlin/foundry.md |
+| data-connection | foundry | 1. GCS Data Connection | gs_gold_connection | Foundry step | 0 | 0 | 1 | merlin/foundry-data-connection.md |
+| virtual-tables | foundry | 2. Virtual Tables | Zero-copy data access | Foundry step | 0 | 1 | 1 | merlin/foundry-virtual-tables.md |
+| ontology | foundry | 3. [Snow] Ontology Graph | 4 object types, 3 graph links | Foundry step | 0 | 2 | 1 | merlin/foundry-ontology.md |
 | agents | merlin | Vertex AI Agent Engine | Multi-agent SDK and Gemini | AI agents | 1 | 1 | 1 | merlin/agents.md |
-| planner | agents | Planner Agent | Classifies and routes prompts | AI agent | 0 | 0 | 1 | merlin/agent-planner.md |
-| analyst | agents | Analyst Agent | spacetime_key range scans | AI agent | 0 | 1 | 1 | merlin/agent-analyst.md |
+| planner | agents | Planner Agent | Inspects object properties and links | AI agent | 0 | 0 | 1 | merlin/agent-planner.md |
+| analyst | agents | Analyst Agent | Ontology queries and range scans | AI agent | 0 | 1 | 1 | merlin/agent-analyst.md |
 | verifier | agents | Verifier Agent | 7 checks and Model Armor | AI agent | 0 | 2 | 1 | merlin/agent-verifier.md |
 | agora | | Agora | User interface workspace | Module | 2 | 0 | 1 | agora/agora.md |
 | chat | agora | LLM chat interface | Window 1 | UI window | 0 | 0 | 2 | agora/chat.md |
@@ -59,12 +58,10 @@ See `README.md` for how to add, move or remove something.
 | p2-home | p3-index | | data | one | | |
 | p3-index | p3-gate | | data | one | | |
 | p3-gate | lakehouse | Gold datasets | gold | one | | arrows/gold-datasets.md |
-| lakehouse | data-connection | Arrow 1: data sync | data | one | | arrows/arrow-1-data-sync.md |
-| data-connection | pipeline-builder | | data | one | | |
-| pipeline-builder | ontology | | data | one | | |
-| ontology | compute-module | | data | one | | |
-| compute-module | workshop | | data | one | | |
-| planner | ontology | Arrow 2: agent reasoning | agent | both | | arrows/arrow-2-agent-reasoning.md |
+| lakehouse | data-connection | Arrow 1: zero-copy projection | data | one | | arrows/arrow-1-data-sync.md |
+| data-connection | virtual-tables | | data | one | | |
+| virtual-tables | ontology | | data | one | | |
+| agents | ontology | Arrow 2: read queries | agent | one | | arrows/arrow-2-agent-reasoning.md |
 | planner | analyst | | agent | one | | |
 | analyst | verifier | | agent | one | | |
 | lakehouse | analyst | BigLake range scans | agent | both | down | |
@@ -72,4 +69,3 @@ See `README.md` for how to add, move or remove something.
 | verifier | chat | Verified answers and audit logs | agent | one | | |
 | chat | map | Heatmaps and site markers | data | one | | |
 | chat | studio | Briefs, tables, audit traces | data | one | | |
-| map | foundry | Approve Deployment | control | one | top | |

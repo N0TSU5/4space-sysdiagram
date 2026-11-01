@@ -9,5 +9,5 @@ Setup steps are in `README.md`.
 
 | Setting | Value |
 | --- | --- |
-| Web app URL | |
-| Sheet URL | |
+| Web app URL | https://script.google.com/macros/s/AKfycbx3V7MnGz68vaSshOEFbqjI5EwIQLN4Lv5DfK4wMSxCQkBlZ4JA0NkEMWvhNj69Uy0h/exec |
+| Sheet URL | https://docs.google.com/spreadsheets/d/1wh_bNFWxbTBB_upzE4z8xp-XxCYu5hPpbgRUBnZxM-s/edit?usp=sharing |

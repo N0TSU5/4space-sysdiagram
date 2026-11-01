@@ -1,12 +1,14 @@
-Ontology Manager defines 9 core `[Snow]` Object Types and 10 Link Types.
+Defined in Ontology Manager. New Gold data landing in the lake is written through to these objects and links, and agents read from them.
 
-## Named object types
+## Object types
 
-- **`[Snow] Area`:** Census demographics and IMD 2025 deprivation ranks, from `gold/area_need`.
-- **`[Snow] Space-Time Cell`:** H3 resolution 9 hexagons linked to specific time slots.
-- **`[Snow] Footfall`:** k-anonymized population and sample device counts (at least 5).
-- **`[Snow] Candidate Site`:** Physical locations, parking availability and power hookups.
-- **`[Snow] Recommendation`:** Composite score, rank and plain-text reasoning, written back by agents.
-- **`[Snow] Van Deployment`:** Created when an NHS planner accepts a recommendation.
+- **`[Snow] Area`:** LSOA code, ONS LSOA boundaries, Census 2021 demographics, IoD 2025 deprivation deciles (`imd_decile`) and calculated area need scores (`need_norm`).
+- **`[Snow] Space-Time Cell`:** H3 resolution 9 spatial tokens (`st_token`) mapped to local time slots (`slot_id`) and `window_id`.
+- **`[Snow] Footfall`:** k-anonymized estimated daily population footfall and panel device counts, enforcing the k ≥ 5 floor.
+- **`[Snow] Candidate Site`:** Site ID, centroid latitude and longitude, parking space, power access (`has_power`) and physical constraints.
 
-The remaining object types and the 10 link types are defined in Ontology Manager.
+## Graph links
+
+- `[Snow] Area` to `[Snow] Space-Time Cell`
+- `[Snow] Space-Time Cell` to `[Snow] Footfall`
+- `[Snow] Candidate Site` to `[Snow] Area`

@@ -1,9 +1,9 @@
-Foundry turns flat Gold tables into the **Ontology**, which converts spatial metrics into real-world concepts such as `[Snow] Area`, `[Snow] Candidate Site` and `[Snow] Footfall`, linked by explicit relationships.
+Foundry projects the Gold Parquet files into the `[Snow]` **Ontology**, without copying the data. Agents can then work with real-world objects and links instead of joining flat spatial tables.
 
 ## Steps
 
-- **1. Data Connection:** secure read-only connection to `gold@datalake4us`.
-- **2. Pipeline Builder transforms:** register Virtual Tables and cast geometries to geo types.
-- **3. Ontology object mapping:** define 9 Object Types and 10 Link Types.
-- **4. Compute Module:** deploy the `querySites` engine as a container.
-- **5. Workshop and AIP Logic:** expose planner actions and plain-text site rationales.
+- **1. GCS Data Connection:** secure read-only path to `gs://gold@datalake4us`.
+- **2. Virtual Tables:** schema definitions over the Parquet files, read in place.
+- **3. `[Snow]` Ontology Graph:** object types and graph links in Ontology Manager.
+
+New Gold data landing in the lake updates the Ontology. Agents read from it through Arrow 2.

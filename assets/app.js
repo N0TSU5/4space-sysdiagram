@@ -21,6 +21,7 @@
   let frame = 0;
   let overviewMd = '';
   const placedLabels = [];
+  let editing = false;
 
   /* ---------- Markdown ---------- */
 
@@ -45,20 +46,46 @@
     return rows.slice(2).map((r) => Object.fromEntries(head.map((h, i) => [h, r[i] || ''])));
   }
 
-  // Top-level bullets under "## Steps" or "## Datasets". A bold lead-in becomes the short form.
-  function diagramList(md) {
+  const LIST_HEADING = /^##\s+(Steps|Datasets|Object types)\s*$/;
+
+  // Top-level bullets under "## Steps" or "## Datasets", as written.
+  function rawList(md) {
     const lines = md.split('\n');
-    const start = lines.findIndex((l) => /^##\s+(Steps|Datasets)\s*$/.test(l.trim()));
+    const start = lines.findIndex((l) => LIST_HEADING.test(l.trim()));
     if (start < 0) return [];
     const items = [];
     for (let i = start + 1; i < lines.length && !lines[i].startsWith('#'); i++) {
       const hit = lines[i].match(/^[-*]\s+(.*)/);
-      if (hit) {
-        const lead = hit[1].match(/^\*\*(.+?):?\*\*/);
-        items.push(lead ? lead[1] : hit[1]);
-      }
+      if (hit) items.push(hit[1]);
     }
     return items;
+  }
+
+  // A bold lead-in becomes the short form shown on the diagram.
+  const diagramList = (md) => rawList(md).map((item) => {
+    const lead = item.match(/^\*\*(.+?):?\*\*/);
+    return lead ? lead[1] : item;
+  });
+
+  // Swaps the bullets in that section, adding or removing the section when needed.
+  function replaceList(md, items) {
+    const lines = md.replace(/\s+$/, '').split('\n');
+    const bullets = items.map((item) => `- ${item}`);
+    const start = lines.findIndex((l) => LIST_HEADING.test(l.trim()));
+    if (start < 0) return items.length ? `${lines.join('\n')}\n\n## Steps\n\n${bullets.join('\n')}\n`.replace(/^\n+/, '') : md;
+    let end = start + 1;
+    while (end < lines.length && !lines[end].startsWith('#')) end++;
+    const others = lines.slice(start + 1, end).filter((l) => l.trim() && !/^[-*]\s/.test(l));
+    const section = items.length ? [lines[start], '', ...bullets, ...(others.length ? ['', ...others] : [])] : others;
+    const after = lines.slice(end);
+    const joined = [...lines.slice(0, start), ...section, ...(after.length ? ['', ...after] : [])];
+    return `${joined.join('\n').replace(/\n{3,}/g, '\n\n').trim()}\n`;
+  }
+
+  function setMd(x, md) {
+    x.md = md;
+    x.list = diagramList(md);
+    x.flag = hasFlag(md);
   }
 
   const clean = (html) => DOMPurify.sanitize(html);
@@ -109,9 +136,7 @@
 
     await Promise.all([...nodes.values(), ...edges].filter((x) => x.file).map(async (x) => {
       try {
-        x.md = await readText(`content/${x.file}`);
-        x.list = diagramList(x.md);
-        x.flag = hasFlag(x.md);
+        setMd(x, await readText(`content/${x.file}`));
       } catch (err) {
         problems.push(`Missing file: ${err.message}`);
       }
@@ -142,21 +167,21 @@
 
   /* ---------- Progress store ---------- */
 
-  const store = { url: '', rows: new Map(), pending: 0, state: 'local', error: '' };
+  const store = { url: '', rows: new Map(), pending: 0, state: 'local', error: '', contentReady: false };
   const getRow = (id) => store.rows.get(id) || { done: false, status: 'Not started', owner: '', notes: '' };
 
-  async function fetchRows() {
+  async function fetchSheet() {
     const res = await fetch(store.url);
     const data = await res.json();
     if (!data.ok || !Array.isArray(data.rows)) throw new Error(data.error || 'Unexpected response');
-    return data.rows;
+    return data;
   }
 
-  async function postUpdates(updates) {
+  async function postUpdates(updates, content = []) {
     const res = await fetch(store.url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids a CORS preflight, which Apps Script can't answer
-      body: JSON.stringify({ updates }),
+      body: JSON.stringify({ updates, content }),
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || 'Save failed');
@@ -176,17 +201,40 @@
     }]));
   }
 
+  function applyServerContent(rows) {
+    if (!Array.isArray(rows)) return;
+    const changed = [];
+    rows.forEach((row) => {
+      const n = nodes.get(row.id);
+      if (!n || isBeingEdited(n)) return;
+      const fields = { label: row.label || n.label, sub: row.sub, kind: row.kind, md: row.md };
+      if (Object.keys(fields).some((k) => n[k] !== fields[k])) {
+        applyFields(n, fields);
+        changed.push(n);
+      }
+    });
+    if (changed.length) contentChanged(changed);
+  }
+
+  const seedFields = (n) => ({ id: n.id, seed: true, fields: { label: n.label, sub: n.sub, kind: n.kind, md: n.md } });
+
   async function connect() {
     if (!store.url) { renderProgress(); return; }
     store.state = 'loading';
     renderProgress();
     try {
-      const rows = await fetchRows();
-      applyServerRows(rows);
+      const data = await fetchSheet();
+      applyServerRows(data.rows);
+      store.contentReady = Array.isArray(data.content);
+      applyServerContent(data.content);
       store.state = 'ok';
-      const known = new Set(rows.map((r) => r.id));
+      const known = new Set(data.rows.map((r) => r.id));
       const missing = allLeaves().filter((n) => !known.has(n.id));
-      if (missing.length) await postUpdates(missing.map((n) => toUpdate(n.id, {})));
+      const stored = new Set((data.content || []).map((r) => r.id));
+      const unstored = store.contentReady ? [...nodes.values()].filter((n) => !stored.has(n.id)) : [];
+      if (missing.length || unstored.length) {
+        await postUpdates(missing.map((n) => toUpdate(n.id, {})), unstored.map(seedFields));
+      }
     } catch (err) {
       store.state = 'error';
       store.error = `Couldn't reach the Google Sheet: ${err.message}`;
@@ -199,9 +247,11 @@
   async function poll() {
     if (document.hidden || store.pending) return;
     try {
-      const rows = await fetchRows();
+      const data = await fetchSheet();
       if (store.pending) return;
-      applyServerRows(rows);
+      applyServerRows(data.rows);
+      store.contentReady = Array.isArray(data.content);
+      applyServerContent(data.content);
       store.state = 'ok';
     } catch (err) {
       store.state = 'error';
@@ -230,6 +280,38 @@
     renderProgress();
   }
 
+  function applyFields(n, fields) {
+    ['label', 'sub', 'kind'].forEach((k) => { if (k in fields) n[k] = fields[k]; });
+    if ('md' in fields) setMd(n, fields.md);
+  }
+
+  // Saves only the box text that actually changed, and restores it if the save fails.
+  async function commit(n, fields) {
+    const changes = Object.fromEntries(Object.entries(fields).filter(([k, v]) => n[k] !== v));
+    if ('label' in changes && !changes.label) delete changes.label;
+    if (!Object.keys(changes).length) { syncEditor(n, true); return; }
+
+    const before = Object.fromEntries(Object.keys(changes).map((k) => [k, n[k]]));
+    applyFields(n, changes);
+    contentChanged([n]);
+    if (!store.url) return;
+
+    store.pending++;
+    renderProgress();
+    try {
+      const renamed = 'label' in changes ? leavesOf(n).map((leaf) => toUpdate(leaf.id, {})) : [];
+      await postUpdates(renamed, [{ id: n.id, fields: changes }]);
+      store.state = 'ok';
+    } catch (err) {
+      applyFields(n, before);
+      contentChanged([n]);
+      store.state = 'error';
+      store.error = `Change not saved: ${err.message}`;
+    }
+    store.pending--;
+    renderProgress();
+  }
+
   const doneFields = (id, done) => {
     const status = getRow(id).status;
     return { done, status: done ? 'Done' : status === 'Done' ? 'Not started' : status };
@@ -240,6 +322,102 @@
   const countDone = (leaves) => leaves.filter((n) => getRow(n.id).done).length;
 
   /* ---------- Diagram DOM ---------- */
+
+  function renderBoxText(n) {
+    const main = n.mainEl;
+    main.replaceChildren();
+    const part = (tag, cls, text) => {
+      const p = document.createElement(tag);
+      p.className = cls;
+      p.textContent = text;
+      main.append(p);
+      return p;
+    };
+    part('span', 'tag', n.kind);
+    part('span', 'title', n.label);
+    if (n.sub) part('span', 'sub', n.sub);
+    if (n.list.length) {
+      const ul = document.createElement('ul');
+      ul.className = 'steps';
+      n.list.forEach((item) => {
+        const li = document.createElement('li');
+        li.innerHTML = inline(item);
+        ul.append(li);
+      });
+      main.append(ul);
+    }
+    if (n.children.length) n.moreEl = part('span', 'more', '');
+    if (n.flag) part('span', 'flag-badge', 'To confirm');
+    n.el.classList.toggle('boundary', n.kind === 'Trust boundary');
+  }
+
+  function buildEditor(n) {
+    const form = document.createElement('div');
+    form.className = 'box-edit';
+    const field = (tag, cls, label, placeholder) => {
+      const f = document.createElement(tag);
+      f.className = cls;
+      f.setAttribute('aria-label', label);
+      f.placeholder = placeholder;
+      if (tag === 'textarea') {
+        f.rows = 1;
+        f.addEventListener('input', () => {
+          const was = f.offsetHeight;
+          grow(f);
+          if (f.offsetHeight !== was) { layout(); animateTo(null); }
+        });
+      }
+      form.append(f);
+      return f;
+    };
+    const kind = field('input', 'ed-kind', 'Type', 'Type');
+    const title = field('textarea', 'ed-title', 'Title', 'Title');
+    const sub = field('input', 'ed-sub', 'Subtitle', 'Subtitle');
+    const list = field('textarea', 'ed-list', 'Bullets, one per line', 'Bullets, one per line');
+
+    kind.addEventListener('change', () => commit(n, { kind: kind.value.trim() }));
+    sub.addEventListener('change', () => commit(n, { sub: sub.value.trim() }));
+    title.addEventListener('change', () => commit(n, { label: title.value.replace(/\s*\n\s*/g, ' ').trim() }));
+    title.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); title.blur(); } });
+    list.addEventListener('change', () => {
+      const items = list.value.split('\n').map((l) => l.replace(/^\s*[-*]\s+/, '').trim()).filter(Boolean);
+      const md = replaceList(n.md, items);
+      if (items.join('\n') !== rawList(n.md).join('\n')) commit(n, { md });
+    });
+    n.fields = { kind, title, sub, list };
+    syncEditor(n);
+    return form;
+  }
+
+  function grow(f) {
+    f.style.height = 'auto';
+    f.style.height = `${f.scrollHeight + 2}px`;
+  }
+
+  // Fills the box's edit fields, leaving alone whichever one is being typed in.
+  function syncEditor(n, force) {
+    const values = { kind: n.kind, title: n.label, sub: n.sub, list: rawList(n.md).join('\n') };
+    Object.entries(n.fields).forEach(([name, f]) => {
+      if (force || document.activeElement !== f) f.value = values[name];
+    });
+  }
+
+  function isBeingEdited(n) {
+    const a = document.activeElement;
+    return Object.values(n.fields).includes(a)
+      || (selected && selected.node === n && $('panel').contains(a) && a.matches('.ed-md'));
+  }
+
+  function contentChanged(list) {
+    list.forEach((n) => {
+      renderBoxText(n);
+      syncEditor(n);
+    });
+    renderNames();
+    refreshPanel();
+    layout();
+    animateTo(null);
+  }
 
   function buildBoxes() {
     const world = $('world');
@@ -252,29 +430,10 @@
       const main = document.createElement('button');
       main.type = 'button';
       main.className = 'box-main';
-      const part = (tag, cls, text) => {
-        const p = document.createElement(tag);
-        p.className = cls;
-        p.textContent = text;
-        main.append(p);
-        return p;
-      };
-      part('span', 'tag', n.kind);
-      part('span', 'title', n.label);
-      if (n.sub) part('span', 'sub', n.sub);
-      if (n.list.length) {
-        const ul = document.createElement('ul');
-        ul.className = 'steps';
-        n.list.forEach((item) => {
-          const li = document.createElement('li');
-          li.innerHTML = inline(item);
-          ul.append(li);
-        });
-        main.append(ul);
-      }
-      if (n.children.length) n.moreEl = part('span', 'more', '');
-      if (n.flag) part('span', 'flag-badge', 'To confirm');
-      el.append(main);
+      n.mainEl = main;
+      n.el = el;
+      renderBoxText(n);
+      el.append(main, buildEditor(n));
 
       const tick = document.createElement('label');
       tick.className = 'tick';
@@ -287,13 +446,11 @@
       el.append(tick);
 
       if (n.children.length) {
-        n.expander = document.createElement('span');
+        n.expander = document.createElement('button');
+        n.expander.type = 'button';
         n.expander.className = 'expander';
-        n.expander.setAttribute('aria-hidden', 'true');
         el.append(n.expander);
       }
-      n.el = el;
-      n.mainEl = main;
       n.tickEl = box;
       world.append(el);
     }
@@ -388,6 +545,7 @@
       const w = n.depth === 0 ? SIZE.moduleW : SIZE.boxW;
       n.el.style.width = `${w}px`;
       n.el.style.height = 'auto';
+      if (editing) { grow(n.fields.title); grow(n.fields.list); }
       n.min = { w, h: Math.max(n.el.offsetHeight, n.depth === 0 ? SIZE.moduleMinH : SIZE.minH) };
       return n.min;
     }
@@ -472,7 +630,11 @@
       n.el.classList.toggle('open', isOpen(n));
       n.mainEl.setAttribute('aria-expanded', String(isOpen(n)));
       if (n.children.length) n.mainEl.setAttribute('aria-label', `${n.label}, ${isOpen(n) ? 'collapse' : 'expand'}`);
-      if (n.expander) n.expander.textContent = isOpen(n) ? '−' : '+';
+      if (n.expander) {
+        n.expander.textContent = isOpen(n) ? '−' : '+';
+        n.expander.tabIndex = editing ? 0 : -1;
+        n.expander.setAttribute('aria-label', `${isOpen(n) ? 'Collapse' : 'Expand'} ${n.label}`);
+      }
       if (show) showing.add(n.id);
     }
     edges.forEach((e) => {
@@ -558,9 +720,7 @@
         if (rt.aSolo && rt.bSolo) {
           const lo = Math.max(al, bl) + margin;
           const hi = Math.min(ah, bh) - margin;
-          // Arrows entering an open box keep to the side, clear of its heading.
-          const crossesWall = !horiz && rt.e.a.parentId !== rt.e.b.parentId;
-          if (lo <= hi) rt.a = rt.b = crossesWall ? hi : (lo + hi) / 2;
+          if (lo <= hi) rt.a = rt.b = (lo + hi) / 2;
         } else if (rt.aSolo && rt.b >= al + margin && rt.b <= ah - margin) {
           rt.a = rt.b;
         } else if (rt.bSolo && rt.a >= bl + margin && rt.a <= bh - margin) {
@@ -713,14 +873,13 @@
     cancelAnimationFrame(frame);
     const from = new Map([...rects].map(([id, r]) => [id, { ...r }]));
     const camFrom = { ...cam };
-    const end = camTarget || cam;
     const lerp = (a, b, t) => a + (b - a) * t;
     const apply = (t) => {
       for (const [id, to] of targets) {
         const f = from.get(id) || to;
         rects.set(id, { x: lerp(f.x, to.x, t), y: lerp(f.y, to.y, t), w: lerp(f.w, to.w, t), h: lerp(f.h, to.h, t) });
       }
-      cam = { x: lerp(camFrom.x, end.x, t), y: lerp(camFrom.y, end.y, t), k: lerp(camFrom.k, end.k, t) };
+      if (camTarget) cam = { x: lerp(camFrom.x, camTarget.x, t), y: lerp(camFrom.y, camTarget.y, t), k: lerp(camFrom.k, camTarget.k, t) };
       paint();
     };
     if (reduced) { apply(1); return; }
@@ -882,6 +1041,25 @@
     return section('Source', p);
   }
 
+  function boxSource(n) {
+    const p = document.createElement('p');
+    p.className = 'source';
+    p.textContent = store.url && store.contentReady
+      ? 'Saved in the Content tab of the Google Sheet. Use the Edit button to change it.'
+      : 'Starting text. Edits are lost on refresh until the Google Sheet is connected.';
+    return section('Source', p);
+  }
+
+  // Redraws an open panel without moving it, unless someone is typing in it.
+  function refreshPanel() {
+    const panel = $('panel');
+    if (!selected || panel.hidden) return;
+    if (panel.contains(document.activeElement) && document.activeElement.matches('input, textarea, select')) return;
+    const top = panel.scrollTop;
+    showPanel();
+    panel.scrollTop = top;
+  }
+
   function showPanel() {
     const body = $('panel-body');
     body.replaceChildren();
@@ -909,7 +1087,23 @@
       body.append(crumbs);
     }
     header(body, n.label, [n.kind, n.sub].filter(Boolean).join(' · '));
-    body.append(renderMd(n.md));
+    if (editing) {
+      const label = document.createElement('label');
+      label.className = 'details-edit';
+      label.textContent = 'Details, in Markdown';
+      const area = document.createElement('textarea');
+      area.className = 'ed-md';
+      area.rows = 12;
+      area.value = n.md;
+      area.addEventListener('change', () => commit(n, { md: area.value.replace(/\s+$/, '') ? `${area.value.replace(/\s+$/, '')}\n` : '' }));
+      label.append(area);
+      const hint = document.createElement('p');
+      hint.className = 'source';
+      hint.textContent = 'Bullets under a "## Steps" heading also appear on the box.';
+      body.append(label, hint);
+    } else {
+      body.append(renderMd(n.md));
+    }
 
     if (n.children.length) {
       const leaves = leavesOf(n);
@@ -927,7 +1121,7 @@
     const describe = (e, other) => linkButton(`${nodes.get(other).label}${e.label ? ` (${e.label})` : ''}`, () => selectEdge(e));
     if (inbound.length) body.append(section('Receives from', listOf(inbound.map((e) => describe(e, e.from)))));
     if (outbound.length) body.append(section('Connects to', listOf(outbound.map((e) => describe(e, e.to)))));
-    body.append(sourceNote(n.file));
+    body.append(boxSource(n));
   }
 
   function showEdge(body, e) {
@@ -1012,15 +1206,16 @@
       cell('c-done').append(check);
 
       const name = cell('c-name');
-      name.append(linkButton(n.label, () => { switchView('diagram'); selectNode(n.id, { focus: 'fit' }); }));
+      const nameLink = linkButton(n.label, () => { switchView('diagram'); selectNode(n.id, { focus: 'fit' }); });
+      name.append(nameLink);
       const parent = nodes.get(n.parentId);
+      let parentEl = null;
       if (parent && parent.depth > 0) {
-        const span = document.createElement('span');
-        span.className = 'parent';
-        span.textContent = parent.label;
-        name.append(span);
+        parentEl = document.createElement('span');
+        parentEl.className = 'parent';
+        name.append(parentEl);
       }
-      cell('c-module').textContent = nodes.get(n.module).label;
+      const moduleEl = cell('c-module');
 
       const status = statusSelect('Not started', (v) => setStatus(n.id, v));
       status.setAttribute('aria-label', `${n.label} status`);
@@ -1037,7 +1232,7 @@
       cell('c-notes').append(notes);
 
       tbody.append(tr);
-      sheetRows.set(n.id, { tr, check, status, owner, notes, node: n });
+      sheetRows.set(n.id, { tr, check, status, owner, notes, node: n, nameLink, parentEl, moduleEl });
     });
 
     $('filter-module').add(new Option('All modules', ''));
@@ -1051,15 +1246,27 @@
       const card = document.createElement('div');
       card.className = 'module-card';
       card.dataset.module = r.id;
-      const title = document.createElement('b');
-      title.textContent = r.label;
+      r.summaryTitle = document.createElement('b');
       r.summaryText = document.createElement('span');
       const bar = document.createElement('div');
       bar.className = 'bar';
       r.summaryBar = document.createElement('i');
       bar.append(r.summaryBar);
-      card.append(title, r.summaryText, bar);
+      card.append(r.summaryTitle, r.summaryText, bar);
       summary.append(card);
+    });
+    renderNames();
+  }
+
+  function renderNames() {
+    for (const { node, nameLink, parentEl, moduleEl } of sheetRows.values()) {
+      nameLink.textContent = node.label;
+      if (parentEl) parentEl.textContent = nodes.get(node.parentId).label;
+      moduleEl.textContent = nodes.get(node.module).label;
+    }
+    roots.forEach((r, i) => {
+      r.summaryTitle.textContent = r.label;
+      $('filter-module').options[i + 1].text = r.label;
     });
   }
 
@@ -1121,12 +1328,21 @@
       panelCount.textContent = `${countDone(inside)} of ${inside.length} done`;
     }
 
+    const outdated = !!store.url && store.state === 'ok' && !store.contentReady;
+    const edit = $('edit');
+    edit.disabled = !!store.url && !store.contentReady;
+    edit.title = edit.disabled ? 'Editing needs the latest Apps Script and a working sheet connection. See README.md.' : '';
+    if (edit.disabled && editing) setEditing(false);
+
     const sync = $('sync');
     sync.className = 'sync';
     sync.title = '';
     if (!store.url) {
       sync.classList.add('warn');
       sync.textContent = 'Sheet not connected: changes are lost on refresh';
+    } else if (outdated) {
+      sync.classList.add('error');
+      sync.textContent = 'Apps Script is out of date: box edits are off';
     } else if (store.state === 'error') {
       sync.classList.add('error');
       sync.textContent = store.error;
@@ -1157,6 +1373,17 @@
     }
   }
 
+  function setEditing(on) {
+    editing = on;
+    document.body.classList.toggle('editing', on);
+    $('edit').setAttribute('aria-pressed', String(on));
+    $('edit').textContent = on ? 'Done editing' : 'Edit';
+    if (on) for (const n of nodes.values()) syncEditor(n);
+    layout();
+    animateTo(null);
+    refreshPanel();
+  }
+
   function collapse(n) {
     open.delete(n.id);
     n.children.forEach(collapse);
@@ -1166,8 +1393,20 @@
     const el = ev.target.closest('.box');
     if (!el || ev.target.closest('.tick')) return;
     const n = nodes.get(el.dataset.id);
+    if (editing) {
+      if (ev.target.closest('.expander')) toggleBox(n);
+      else if (!selected || selected.node !== n) selectNode(n.id, { focus: 'none' });
+    } else if (isOpen(n) && !ev.target.closest('.box-main')) {
+      selectNode(n.id, { focus: 'none' });
+    } else if (n.children.length) {
+      toggleBox(n);
+    } else {
+      selectNode(n.id);
+    }
+  }
+
+  function toggleBox(n) {
     if (isOpen(n)) {
-      if (!ev.target.closest('.box-main')) { selectNode(n.id, { focus: 'none' }); return; }
       collapse(n);
       layout();
       const parent = nodes.get(n.parentId);
@@ -1176,11 +1415,9 @@
       animateTo(fitCam(parent ? targets.get(parent.id) : bounds()));
       markSelection();
       setHash(n.id);
-    } else if (n.children.length) {
+    } else {
       open.add(n.id);
       selectNode(n.id, { focus: 'fit' });
-    } else {
-      selectNode(n.id);
     }
   }
 
@@ -1190,7 +1427,7 @@
     let suppressClick = false;
 
     canvas.addEventListener('pointerdown', (ev) => {
-      if (ev.target.closest('.tick') || ev.button !== 0) return;
+      if (ev.target.closest('.tick, input, textarea') || ev.button !== 0) return;
       drag = { x: ev.clientX, y: ev.clientY, camX: cam.x, camY: cam.y, moved: false, id: ev.pointerId };
     });
     canvas.addEventListener('pointermove', (ev) => {
@@ -1230,6 +1467,7 @@
     });
 
     $('panel-close').addEventListener('click', clearSelection);
+    $('edit').addEventListener('click', () => setEditing(!editing));
     $('about').addEventListener('click', () => { selected = { type: 'about' }; showPanel(); markSelection(); });
     $('fit').addEventListener('click', () => animateTo(fitCam(bounds())));
     $('zoom-in').addEventListener('click', () => zoomBy(1.25));
@@ -1246,7 +1484,7 @@
     });
     $('tab-diagram').addEventListener('click', () => { switchView('diagram'); setHash(''); });
     $('tab-progress').addEventListener('click', () => switchView('progress'));
-    document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !$('panel').hidden) clearSelection(); });
+    document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !$('panel').hidden && !ev.target.matches('input, textarea')) clearSelection(); });
     addEventListener('resize', () => { if (!$('view-diagram').hidden) animateTo(fitCam(bounds())); });
   }
 

@@ -8,6 +8,10 @@ const STATUSES = ['Not started', 'In progress', 'Blocked', 'Done'];
 const MAX_ROWS = 500;
 const MAX_UPDATES = 100;
 const MAX_TEXT = 2000;
+const CONTENT_TAB = 'Content';
+const CONTENT_HEADERS = ['ID', 'Title', 'Subtitle', 'Type', 'Details', 'Updated'];
+const CONTENT_COL = { id: 1, label: 2, sub: 3, kind: 4, md: 5, updated: 6 };
+const MAX_DETAILS = 20000;
 
 // Run once from the Apps Script editor to create and format the tab.
 function setup() {
@@ -19,6 +23,7 @@ function setup() {
   sheet.getRange(2, COL.status, MAX_ROWS, 1).setDataValidation(
     SpreadsheetApp.newDataValidation().requireValueInList(STATUSES, true).build()
   );
+  getContentSheet();
 }
 
 function doGet() {
@@ -33,7 +38,7 @@ function doGet() {
       owner: String(r[COL.owner - 1] || ''),
       notes: String(r[COL.notes - 1] || ''),
     }));
-  return json({ ok: true, rows: rows });
+  return json({ ok: true, rows: rows, content: readContent() });
 }
 
 function doPost(e) {
@@ -42,11 +47,15 @@ function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
     const updates = Array.isArray(body.updates) ? body.updates : [];
-    if (updates.length > MAX_UPDATES) return json({ ok: false, error: 'Too many updates' });
-    if (!updates.every(isValid)) return json({ ok: false, error: 'Invalid update' });
+    const content = Array.isArray(body.content) ? body.content : [];
+    if (updates.length > MAX_UPDATES || content.length > MAX_UPDATES) return json({ ok: false, error: 'Too many updates' });
+    if (!updates.every(isValid) || !content.every(isValidContent)) return json({ ok: false, error: 'Invalid update' });
 
-    const sheet = getSheet();
-    updates.forEach((update) => applyUpdate(sheet, update));
+    if (updates.length) {
+      const sheet = getSheet();
+      updates.forEach((update) => applyUpdate(sheet, update));
+    }
+    if (content.length) applyContent(content);
     return json({ ok: true });
   } catch (err) {
     return json({ ok: false, error: String(err) });
@@ -71,10 +80,14 @@ function onEdit(e) {
 }
 
 function applyUpdate(sheet, update) {
-  let row = findRow(sheet, update.id);
-  if (!row) {
-    row = Math.max(sheet.getLastRow(), 1) + 1;
-    if (row > MAX_ROWS + 1) throw new Error('Sheet is full');
+  // Rows are found by ID because the checkboxes make getLastRow() count every formatted row.
+  const ids = readIds(sheet);
+  let index = ids.indexOf(update.id);
+  const isNew = index < 0;
+  if (isNew) index = ids.indexOf('');
+  if (index < 0) throw new Error('Sheet is full');
+  const row = index + 2;
+  if (isNew) {
     sheet.getRange(row, COL.id).setValue(update.id);
     sheet.getRange(row, COL.done).setValue(false);
     sheet.getRange(row, COL.status).setValue('Not started');
@@ -99,25 +112,76 @@ function isValid(update) {
     .every((v) => v === undefined || (typeof v === 'string' && v.length <= MAX_TEXT));
 }
 
-// Stops typed text from running as a spreadsheet formula.
-function asText(value) {
-  const text = String(value === undefined ? '' : value);
-  return /^[=+\-@]/.test(text) ? "'" + text : text;
+function readContent() {
+  const sheet = getContentSheet();
+  const count = sheet.getLastRow() - 1;
+  if (count < 1) return [];
+  return sheet.getRange(2, 1, count, CONTENT_HEADERS.length).getValues()
+    .filter((r) => r[CONTENT_COL.id - 1])
+    .map((r) => ({
+      id: String(r[CONTENT_COL.id - 1]),
+      label: String(r[CONTENT_COL.label - 1]),
+      sub: String(r[CONTENT_COL.sub - 1]),
+      kind: String(r[CONTENT_COL.kind - 1]),
+      md: String(r[CONTENT_COL.md - 1]),
+    }));
 }
 
-function findRow(sheet, id) {
+function applyContent(items) {
+  const sheet = getContentSheet();
   const count = sheet.getLastRow() - 1;
-  if (count < 1) return 0;
-  const ids = sheet.getRange(2, COL.id, count, 1).getValues();
-  for (let i = 0; i < ids.length; i++) {
-    if (ids[i][0] === id) return i + 2;
-  }
-  return 0;
+  const ids = count < 1 ? [] : sheet.getRange(2, CONTENT_COL.id, count, 1).getValues().map((r) => r[0]);
+  items.forEach((item) => {
+    let index = ids.indexOf(item.id);
+    if (index >= 0 && item.seed) return; // never let starting text replace saved text
+    if (index < 0) {
+      if (ids.length >= MAX_ROWS) throw new Error('Content tab is full');
+      index = ids.push(item.id) - 1;
+      sheet.getRange(index + 2, CONTENT_COL.id).setValue(item.id);
+    }
+    const fields = item.fields || {};
+    ['label', 'sub', 'kind', 'md'].forEach((name) => {
+      if (name in fields) sheet.getRange(index + 2, CONTENT_COL[name]).setValue(asText(fields[name]));
+    });
+    if (!item.seed) sheet.getRange(index + 2, CONTENT_COL.updated).setValue(new Date());
+  });
+}
+
+function isValidContent(item) {
+  if (!item || !/^[a-z0-9-]{1,64}$/.test(String(item.id))) return false;
+  const fields = item.fields || {};
+  if ('label' in fields && (typeof fields.label !== 'string' || !fields.label.trim())) return false;
+  return ['label', 'sub', 'kind', 'md'].every((name) => {
+    if (!(name in fields)) return true;
+    return typeof fields[name] === 'string' && fields[name].length <= (name === 'md' ? MAX_DETAILS : MAX_TEXT);
+  });
+}
+
+// The leading apostrophe stores typed text as text, so it can't run as a formula or become a date.
+function asText(value) {
+  const text = String(value === undefined ? '' : value);
+  return text ? "'" + text : text;
+}
+
+function readIds(sheet) {
+  const count = Math.min(sheet.getMaxRows() - 1, MAX_ROWS);
+  return sheet.getRange(2, COL.id, count, 1).getValues().map((r) => r[0]);
 }
 
 function getSheet() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(TAB);
   if (!sheet) throw new Error('Run setup() first');
+  return sheet;
+}
+
+function getContentSheet() {
+  const book = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = book.getSheetByName(CONTENT_TAB);
+  if (!sheet) {
+    sheet = book.insertSheet(CONTENT_TAB);
+    sheet.getRange(1, 1, 1, CONTENT_HEADERS.length).setValues([CONTENT_HEADERS]).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
   return sheet;
 }
 

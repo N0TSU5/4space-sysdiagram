@@ -24,4 +24,4 @@ The platform must enforce in-line PII de-identification and a mandatory k-anonym
 - Tick a box's checkbox to mark it done. Ticking a parent ticks everything inside it.
 - Use the **Progress** tab for the full spreadsheet of owners, statuses and notes.
 - Drag to pan and scroll to zoom.
-- The panel footer names the Markdown file that holds the text you are reading.
+- Click **Edit** to change the text on any box. Changes are saved to the Google Sheet.

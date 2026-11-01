@@ -1,8 +1,7 @@
-# Project Snow system design
+# FourthSpace - Are we there yet?
 
-An interactive system design diagram for the Project Snow MVP, with a progress
-spreadsheet connected to Google Sheets. All of the text lives in Markdown files, and
-there is no build step.
+An interactive system design diagram for the Project Snow MVP, with box text and a progress
+spreadsheet stored in Google Sheets. There is no build step.
 
 ## Run it
 
@@ -18,16 +17,33 @@ such as GitHub Pages.
 
 ## Edit the content
 
+### Box text
+
+Click **Edit** above the diagram to change a box's type, title, subtitle and bullets on the
+box. Select a box to change its full details in the side panel. Click **Done editing** to go
+back to normal.
+
+Changes are saved when you leave a field. They're stored in the `Content` tab of the Google
+Sheet, and you can also edit that tab directly. Other people's open pages pick changes up
+within 30 seconds.
+
+The first time the page connects, it copies the starting text from the Markdown files into
+the `Content` tab. **After that, the sheet wins for box text:** editing a box's Markdown file
+has no effect while that box has a row in the tab. To go back to a file's text, delete the
+box's row and refresh.
+
+### Everything else
+
 | To change | Edit |
 | --- | --- |
-| The text for a box or arrow | The Markdown file named at the bottom of its details panel |
-| Box names, subtitles and positions | The `Boxes` table in `content/diagram.md` |
+| Arrow text | The Markdown file named at the bottom of its details panel |
+| Adding, moving or removing boxes | The `Boxes` table in `content/diagram.md` |
 | Arrows | The `Arrows` table in `content/diagram.md` |
 | The About panel | `content/overview.md` |
 | The Google Sheet connection | `content/progress.md` |
 
-Refresh the page to see your changes. If an ID or file name is wrong, a banner at the top
-of the page lists the problem.
+Refresh the page to see changes to these files. If an ID or file name is wrong, a banner at
+the top of the page lists the problem.
 
 ### Add a box
 
@@ -38,7 +54,7 @@ of the page lists the problem.
 
 ### Markdown features
 
-- `## Steps` or `## Datasets`: the top-level bullets also appear on the box or arrow. If a
+- `## Steps`, `## Datasets` or `## Object types`: the top-level bullets also appear on the box or arrow. If a
   bullet starts with bold text, only the bold text appears on the diagram, and the whole
   bullet appears in the details panel.
 - `> **To confirm:** your question`: highlights the note and adds a "To confirm" badge on
@@ -73,14 +89,16 @@ Until this is done, ticks work on the page but are lost on refresh.
 8. Refresh the page. The first load adds a row to the sheet for every component.
 
 If you change `Code.gs` later, publish it with **Deploy > Manage deployments**, then edit
-the deployment and choose a new version.
+the deployment and choose a new version. Until you do, the page turns box editing off if the
+live script is too old to store it.
 
-### Who can change the progress data
+### Who can read and change the data
 
 **Who has access** must be **Anyone**, because the page calls the script without a Google
-sign-in. Anyone who has the web app URL can read and change the owners, statuses and notes
-on the `Progress` tab, even without access to the sheet itself. The script can't reach
-other tabs or files through the page, but the URL is visible in this repo and in the page.
+sign-in. Anyone who has the web app URL can read and change the `Progress` and `Content` tabs,
+including the architecture text, even without access to the sheet itself. The Edit button only
+protects against accidents, not against someone calling the URL directly. The URL is visible
+in this repo and in the page.
 
-Don't put patient data, personal data beyond owner names, or secrets in the Notes column.
-If the repo is public, treat the tracker as public too.
+Don't put patient data, personal data beyond owner names, or secrets in the sheet. If the repo
+is public, treat the tracker and box text as public too.
