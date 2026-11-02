@@ -1,4 +1,5 @@
-// Google Apps Script backend for the Project Snow progress tracker.
+// Google Apps Script backend for a FourthSpace board's progress tracker. Each board uses
+// its own spreadsheet with its own copy of this script.
 // Setup steps are in README.md.
 
 const TAB = 'Progress';

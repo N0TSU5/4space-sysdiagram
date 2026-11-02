@@ -22,6 +22,9 @@
   let overviewMd = '';
   const placedLabels = [];
   let editing = false;
+  let boards = [];
+  let board = null;
+  const stages = [];
 
   /* ---------- Markdown ---------- */
 
@@ -102,14 +105,25 @@
     return div;
   }
 
-  async function load() {
-    const diagram = await readText('content/diagram.md');
-    overviewMd = await readText('content/overview.md').catch((err) => { problems.push(`Missing file: ${err.message}`); return ''; });
+  // Which board this page shows, from ?board= or the first row of content/boards.md.
+  async function loadBoards() {
+    boards = parseTable(await readText('content/boards.md'), 'Boards').filter((r) => r.id && r.folder);
+    if (!boards.length) throw new Error('content/boards.md lists no boards');
+    const wanted = new URLSearchParams(location.search).get('board');
+    board = boards.find((b) => b.id === wanted) || boards[0];
+  }
 
+  const boardPath = (file) => `content/${board.folder}/${file}`;
+
+  async function load() {
+    const diagram = await readText(boardPath('diagram.md'));
+    overviewMd = await readText(boardPath('overview.md')).catch((err) => { problems.push(`Missing file: ${err.message}`); return ''; });
+
+    parseTable(diagram, 'Stages').forEach((r, i) => stages.push({ id: r.id, label: r.label, description: r.description, index: i + 1 }));
     parseTable(diagram, 'Boxes').forEach((r) => {
       nodes.set(r.id, {
         id: r.id, parentId: r.parent, label: r.label, sub: r.subtitle, kind: r.kind, file: r.file,
-        col: +r.col || 0, row: +r.row || 0, rowspan: Math.max(+r.rowspan || 1, 1),
+        col: +r.col || 0, row: +r.row || 0, rowspan: Math.max(+r.rowspan || 1, 1), colspan: Math.max(+r.colspan || 1, 1),
         children: [], md: '', list: [], flag: false,
       });
     });
@@ -128,21 +142,23 @@
         problems.push(`Arrow "${r.from}" to "${r.to}" uses an unknown box ID`);
         return;
       }
+      const stage = stages.find((s) => s.id === r.stage) || null;
+      if (r.stage && !stage) problems.push(`Arrow "${r.from}" to "${r.to}" uses an unknown stage "${r.stage}"`);
       edges.push({
-        from: r.from, to: r.to, label: r.label, kind: r.kind || 'data',
+        from: r.from, to: r.to, label: r.label, kind: r.kind || 'data', stage,
         both: r.direction === 'both', route: r.route, file: r.file, md: '', list: [],
       });
     });
 
     await Promise.all([...nodes.values(), ...edges].filter((x) => x.file).map(async (x) => {
       try {
-        setMd(x, await readText(`content/${x.file}`));
+        setMd(x, await readText(boardPath(x.file)));
       } catch (err) {
         problems.push(`Missing file: ${err.message}`);
       }
     }));
 
-    const settings = await readText('content/progress.md').catch(() => '');
+    const settings = await readText(boardPath('progress.md')).catch(() => '');
     const value = (name) => (parseTable(settings, 'Connection').find((r) => r.setting === name) || {}).value || '';
     store.url = safeUrl(value('Web app URL'));
     const sheetUrl = safeUrl(value('Sheet URL'));
@@ -462,7 +478,8 @@
     edges.forEach((e, i) => {
       e.i = i;
       const g = document.createElementNS(SVG, 'g');
-      g.setAttribute('class', `edge ${e.kind}`);
+      e.cls = `${e.kind}${e.stage ? ` stage-${e.stage.index}` : ''}`;
+      g.setAttribute('class', `edge ${e.cls}`);
       g.dataset.edge = i;
       e.line = document.createElementNS(SVG, 'path');
       e.line.setAttribute('class', 'line');
@@ -477,7 +494,7 @@
       if (e.list.length) {
         const card = document.createElement('button');
         card.type = 'button';
-        card.className = `edge-card ${e.kind}`;
+        card.className = `edge-card ${e.cls}`;
         card.dataset.edge = i;
         const title = document.createElement('strong');
         title.textContent = e.label;
@@ -498,13 +515,47 @@
       } else if (e.label) {
         const label = document.createElement('button');
         label.type = 'button';
-        label.className = `edge-label ${e.kind}`;
+        label.className = `edge-label ${e.cls}`;
         label.dataset.edge = i;
         label.textContent = e.label;
         e.tag = label;
       }
       if (e.tag) world.append(e.tag);
     });
+  }
+
+  // Boards with stages colour arrows by stage, so the legend shows stages and line styles.
+  function buildLegend() {
+    const legend = $('legend');
+    const line = (cls, text) => {
+      const span = document.createElement('span');
+      span.className = cls;
+      span.innerHTML = '<svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4"/></svg>';
+      span.append(text);
+      return span;
+    };
+    if (!stages.length) {
+      [['gold', 'Gold data'], ['data', 'Data'], ['control', 'Control'], ['secret', 'Secret'], ['agent', 'Agent']]
+        .forEach(([k, text]) => legend.append(line(`k-${k}`, text)));
+      return;
+    }
+    stages.forEach((s) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = `legend-stage stage-${s.index}`;
+      b.setAttribute('aria-pressed', 'false');
+      b.title = `Highlight the ${s.label.replace(/^\d+\.\s*/, '')} arrows`;
+      b.innerHTML = '<svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4"/></svg>';
+      b.append(s.label);
+      b.addEventListener('click', () => (selected && selected.stage === s ? clearSelection() : selectStage(s)));
+      s.legendEl = b;
+      legend.append(b);
+    });
+    const sep = document.createElement('i');
+    sep.className = 'legend-sep';
+    legend.append(sep);
+    [['gold', 'Gold data'], ['data', 'Data or agent'], ['control', 'Control'], ['secret', 'Secret']]
+      .forEach(([k, text]) => legend.append(line(`k-${k} plain`, text)));
   }
 
   /* ---------- Layout ---------- */
@@ -522,9 +573,11 @@
       const a = shownAs(nodes.get(e.from));
       const b = shownAs(nodes.get(e.to));
       const key = [a.id, b.id].sort().join('|');
+      const direct = a.id === e.from && b.id === e.to;
       e.a = a;
       e.b = b;
-      e.shown = a !== b && !seen.has(key);
+      // Arrows drawn between their own boxes always show; rolled-up ones merge.
+      e.shown = a !== b && (direct || !seen.has(key));
       if (e.shown) {
         seen.add(key);
         visible.push(e);
@@ -551,7 +604,7 @@
     }
     kids.forEach(measure);
 
-    const cols = Math.max(...kids.map((c) => c.col)) + 1;
+    const cols = Math.max(...kids.map((c) => c.col + c.colspan - 1)) + 1;
     const rows = Math.max(...kids.map((c) => c.row + c.rowspan - 1)) + 1;
     const colW = Array(cols).fill(0);
     const rowH = Array(rows).fill(0);
@@ -559,7 +612,7 @@
     const gapY = Array(Math.max(rows - 1, 0)).fill(SIZE.gapY);
 
     kids.forEach((c) => {
-      colW[c.col] = Math.max(colW[c.col], c.min.w);
+      if (c.colspan === 1) colW[c.col] = Math.max(colW[c.col], c.min.w);
       if (c.rowspan === 1) rowH[c.row] = Math.max(rowH[c.row], c.min.h);
     });
 
@@ -582,15 +635,16 @@
       }
     });
 
-    kids.filter((c) => c.rowspan > 1).forEach((c) => {
-      const span = rowH.slice(c.row, c.row + c.rowspan);
-      const gaps = gapY.slice(c.row, c.row + c.rowspan - 1);
-      const have = span.reduce((a, b) => a + b, 0) + gaps.reduce((a, b) => a + b, 0);
-      const extra = (c.min.h - have) / c.rowspan;
-      if (extra > 0) for (let i = c.row; i < c.row + c.rowspan; i++) rowH[i] += extra;
-    });
-
     const sum = (arr) => arr.reduce((a, b) => a + b, 0);
+    // Spanning boxes share out any extra size they need across their rows or columns.
+    const spread = (sizes, gaps, start, span, need) => {
+      const have = sum(sizes.slice(start, start + span)) + sum(gaps.slice(start, start + span - 1));
+      const extra = (need - have) / span;
+      if (extra > 0) for (let i = start; i < start + span; i++) sizes[i] += extra;
+    };
+    kids.filter((c) => c.rowspan > 1).forEach((c) => spread(rowH, gapY, c.row, c.rowspan, c.min.h));
+    kids.filter((c) => c.colspan > 1).forEach((c) => spread(colW, gapX, c.col, c.colspan, c.min.w));
+
     const pad = n ? SIZE.pad : 0;
     const head = n ? SIZE.head : 0;
     const min = { w: sum(colW) + sum(gapX) + 2 * pad, h: head + sum(rowH) + sum(gapY) + pad };
@@ -614,9 +668,10 @@
 
     kids.forEach((c) => {
       const cellH = top(c.row + c.rowspan - 1) + heights[c.row + c.rowspan - 1] - top(c.row);
+      const cellW = left(c.col + c.colspan - 1) + widths[c.col + c.colspan - 1] - left(c.col);
       const stretch = c.rowspan > 1 || isOpen(c);
       const boxH = stretch ? cellH : c.min.h;
-      place(c, isOpen(c) ? c.grid : null, left(c.col), top(c.row) + (cellH - boxH) / 2, widths[c.col], boxH);
+      place(c, isOpen(c) ? c.grid : null, left(c.col), top(c.row) + (cellH - boxH) / 2, cellW, boxH);
     });
   }
 
@@ -671,7 +726,8 @@
       const B = box(R, e.b);
       const direct = e.a.id === e.from && e.b.id === e.to;
       let mode;
-      if (e.route === 'top' && direct && A.x >= B.r) mode = 'top';
+      if (e.route === 'over') mode = 'over';
+      else if (e.route === 'top' && direct && A.x >= B.r) mode = 'top';
       else if (e.route === 'down' && A.b <= B.cy && B.x >= A.cx) mode = 'down';
       else if (B.x >= A.r) mode = 'right';
       else if (A.x >= B.r) mode = 'left';
@@ -693,7 +749,7 @@
       else if (mode === 'below') { addPort(e.a, 'B', rt, 'a', B.cx); addPort(e.b, 'T', rt, 'b', A.cx); }
       else if (mode === 'above') { addPort(e.a, 'T', rt, 'a', B.cx); addPort(e.b, 'B', rt, 'b', A.cx); }
       else if (mode === 'down') addPort(e.b, 'L', rt, 'b', A.b);
-      else if (mode === 'top') addPort(e.b, 'R', rt, 'b', A.y);
+      else if (mode === 'top' || mode === 'over') addPort(e.b, 'R', rt, 'b', A.y);
     });
 
     for (const [key, list] of sides) {
@@ -739,6 +795,8 @@
       } else if (mode === 'top') {
         const moduleLeft = R.get(e.a.module).x;
         rt.mid = (B.r + moduleLeft) / 2;
+      } else if (mode === 'over') {
+        rt.mid = B.r + SIZE.gapX / 2;
       } else {
         return;
       }
@@ -757,6 +815,9 @@
       if (mode === 'top') {
         const lane = R.get(e.a.parentId).y + SIZE.head - 7; // just above the row of sibling boxes
         pts = [[A.cx, A.y], [A.cx, lane], [mid, lane], [mid, b], [B.r, b]];
+      } else if (mode === 'over') {
+        const lane = overLane(R);
+        pts = [[A.cx, A.y], [A.cx, lane], [mid, lane], [mid, b], [B.r, b]];
       } else if (mode === 'down') {
         pts = [[A.cx, A.b], [A.cx, b], [B.x, b]];
       } else if (mode === 'right' || mode === 'left') {
@@ -772,6 +833,9 @@
       drawEdge(e, pts);
     });
   }
+
+  // The lane that "over" arrows use, above the whole diagram.
+  const overLane = (R) => Math.min(...roots.map((r) => R.get(r.id).y)) - 36;
 
   function drawEdge(e, pts) {
     const head = e.kind === 'gold' ? 12 : 8;
@@ -914,8 +978,10 @@
   function bounds() {
     const all = [...targets.values()];
     const x = Math.min(...all.map((r) => r.x));
-    const y = Math.min(...all.map((r) => r.y));
-    return { x, y, w: Math.max(...all.map((r) => r.x + r.w)) - x, h: Math.max(...all.map((r) => r.y + r.h)) - y };
+    const bottom = Math.max(...all.map((r) => r.y + r.h));
+    let y = Math.min(...all.map((r) => r.y));
+    if (visible.some((e) => e.route === 'over')) y = overLane(targets) - 16; // room for the lane's label
+    return { x, y, w: Math.max(...all.map((r) => r.x + r.w)) - x, h: bottom - y };
   }
 
   function camToShow(r) {
@@ -959,6 +1025,19 @@
     setHash('');
   }
 
+  // Opens every box a stage's arrows touch and highlights those arrows.
+  function selectStage(s, list = edges.filter((e) => e.stage === s), hash = `stage-${s.id}`) {
+    list.forEach((e) => {
+      [e.from, e.to].forEach((id) => ancestors(nodes.get(id)).forEach((a) => open.add(a.id)));
+    });
+    selected = { type: 'stage', stage: s, edges: list };
+    showPanel();
+    layout();
+    animateTo(fitCam(bounds()));
+    markSelection();
+    setHash(hash);
+  }
+
   function clearSelection() {
     selected = null;
     $('panel').hidden = true;
@@ -974,14 +1053,19 @@
   function markSelection() {
     const sel = selected && selected.type === 'node' ? selected.node : null;
     const selEdge = selected && selected.type === 'edge' ? selected.edge : null;
+    const selStage = selected && selected.type === 'stage' ? selected.stage : null;
     const within = (x) => {
       for (let cur = x; cur; cur = nodes.get(cur.parentId)) if (cur === sel) return true;
       return false;
     };
     for (const n of nodes.values()) n.el.classList.toggle('selected', n === sel);
+    stages.forEach((s) => s.legendEl.setAttribute('aria-pressed', String(s === selStage)));
     edges.forEach((e) => {
-      const touches = sel ? within(nodes.get(e.from)) !== within(nodes.get(e.to)) || e.a === sel || e.b === sel : e === selEdge;
-      const dim = (sel || selEdge) && !touches;
+      let touches;
+      if (sel) touches = within(nodes.get(e.from)) !== within(nodes.get(e.to)) || e.a === sel || e.b === sel;
+      else if (selStage) touches = selected.edges.includes(e);
+      else touches = e === selEdge;
+      const dim = (sel || selEdge || selStage) && !touches;
       e.g.classList.toggle('hot', !!touches);
       e.g.classList.toggle('dim', !!dim);
       if (e.tag) {
@@ -1036,7 +1120,7 @@
     p.className = 'source';
     p.append('Edit this text in ');
     const code = document.createElement('code');
-    code.textContent = `content/${file}`;
+    code.textContent = boardPath(file);
     p.append(code);
     return section('Source', p);
   }
@@ -1045,7 +1129,7 @@
     const p = document.createElement('p');
     p.className = 'source';
     p.textContent = store.url && store.contentReady
-      ? 'Saved in the Content tab of the Google Sheet. Use the Edit button to change it.'
+      ? `Saved in the Content tab of the ${board.label} Google Sheet. Use the Edit button to change it.`
       : 'Starting text. Edits are lost on refresh until the Google Sheet is connected.';
     return section('Source', p);
   }
@@ -1064,8 +1148,10 @@
     const body = $('panel-body');
     body.replaceChildren();
     if (selected.type === 'about') {
-      header(body, 'Project Snow', 'Thames Freeport digital twin for mobile health van deployment');
+      header(body, board.title || board.label, board.lede);
       body.append(renderMd(overviewMd), sourceNote('overview.md'));
+    } else if (selected.type === 'stage') {
+      showStage(body, selected.stage, selected.edges);
     } else if (selected.type === 'edge') {
       showEdge(body, selected.edge);
     } else {
@@ -1134,6 +1220,19 @@
       linkButton(to.label, () => selectNode(to.id)),
     ])));
     if (e.file) body.append(sourceNote(e.file));
+  }
+
+  function showStage(body, s, list) {
+    header(body, s.label, 'Journey stage');
+    if (s.description) body.append(renderMd(s.description));
+    const numbered = list.filter((e) => e.label)
+      .sort((p, q) => p.label.localeCompare(q.label, undefined, { numeric: true }));
+    if (numbered.length) body.append(section('Arrows', listOf(numbered.map((e) => linkButton(e.label, () => selectEdge(e))))));
+    const slide = journey.slides.findIndex((sl) => sl.stage === s.id);
+    if (slide >= 0 && journey.board === board) {
+      body.append(section('Journey', listOf([linkButton('Walk through this stage', () => { switchView('journey'); journey.show(slide); })])));
+    }
+    body.append(sourceNote('diagram.md'));
   }
 
   function progressFields(n) {
@@ -1358,19 +1457,62 @@
 
   /* ---------- Interaction ---------- */
 
+  const VIEWS = ['diagram', 'progress', 'journey'];
+
   function switchView(view) {
-    const diagram = view === 'diagram';
-    $('view-diagram').hidden = !diagram;
-    $('view-progress').hidden = diagram;
-    $('tab-diagram').setAttribute('aria-pressed', String(diagram));
-    $('tab-progress').setAttribute('aria-pressed', String(!diagram));
-    $('about').hidden = !diagram;
-    if (diagram) {
+    VIEWS.forEach((v) => {
+      $(`view-${v}`).hidden = v !== view;
+      $(`tab-${v}`).setAttribute('aria-pressed', String(v === view));
+    });
+    $('about').hidden = view !== 'diagram';
+    $('boards').hidden = view === 'journey';
+    $('summary').hidden = view === 'journey';
+    boardLinks.forEach((a) => { a.hash = view === 'progress' ? 'progress' : ''; });
+    if (view === 'diagram') {
       layout();
       animateTo(fitCam(bounds()));
-    } else {
+    } else if (view === 'progress') {
       setHash('progress');
+    } else {
+      journey.show(journey.index);
     }
+  }
+
+  // Subtabs for each board. Boards keep separate state, so switching reloads the page.
+  const boardLinks = [];
+  function buildBoardTabs() {
+    const nav = $('boards');
+    boards.forEach((b) => {
+      const a = document.createElement('a');
+      a.className = 'subtab';
+      a.href = `?board=${encodeURIComponent(b.id)}`;
+      a.textContent = b.label;
+      if (b === board) a.setAttribute('aria-current', 'page');
+      boardLinks.push(a);
+      nav.append(a);
+    });
+    nav.hidden = boards.length < 2;
+  }
+
+  // Arrows whose labels start with these step numbers, such as "2.1".
+  const stepEdges = (numbers) => edges.filter((e) => numbers.some((num) => e.label.startsWith(`${num} `)));
+
+  function selectSteps(numbers) {
+    const list = stepEdges(numbers);
+    const s = list.length && list[0].stage;
+    if (s) selectStage(s, list, `steps=${numbers.join(',')}`);
+  }
+
+  // From a journey slide: highlight its arrows, or its first box, on the diagram.
+  function showOnDiagram(target, slide) {
+    const hash = slide.arrows.length ? `steps=${slide.arrows.join(',')}` : slide.show[0] || '';
+    if (target !== board) {
+      location.href = `?board=${encodeURIComponent(target.id)}${hash ? `#${hash}` : ''}`;
+      return;
+    }
+    switchView('diagram');
+    if (slide.arrows.length) selectSteps(slide.arrows);
+    else if (nodes.has(slide.show[0])) selectNode(slide.show[0], { focus: 'fit' });
   }
 
   function setEditing(on) {
@@ -1484,6 +1626,7 @@
     });
     $('tab-diagram').addEventListener('click', () => { switchView('diagram'); setHash(''); });
     $('tab-progress').addEventListener('click', () => switchView('progress'));
+    $('tab-journey').addEventListener('click', () => switchView('journey'));
     document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !$('panel').hidden && !ev.target.matches('input, textarea')) clearSelection(); });
     addEventListener('resize', () => { if (!$('view-diagram').hidden) animateTo(fitCam(bounds())); });
   }
@@ -1491,7 +1634,7 @@
   function showProblems() {
     if (!problems.length) return;
     const box = $('problems');
-    box.textContent = 'Check the Markdown files:';
+    box.replaceChildren('Check the Markdown files:');
     const ul = document.createElement('ul');
     problems.forEach((p) => {
       const li = document.createElement('li');
@@ -1515,14 +1658,26 @@
     document.body.replaceChildren(div);
   }
 
+  const journey = window.createJourney({
+    $, readText, parseTable, renderMd, inline, setHash, showOnDiagram,
+    boards: () => boards,
+    problem: (text) => problems.push(text),
+  });
+
   async function init() {
+    let journeyLoad;
     try {
+      await loadBoards();
+      journeyLoad = journey.load().catch((err) => problems.push(`Journey: ${err.message}`));
       await load();
+      await journeyLoad;
     } catch (err) {
       showFatal(err);
       return;
     }
     showProblems();
+    buildBoardTabs();
+    buildLegend();
     buildBoxes();
     buildEdges();
     buildSheet();
@@ -1534,8 +1689,14 @@
     paint();
     for (const n of nodes.values()) n.el.classList.remove('entering');
 
-    const hash = location.hash.slice(1);
+    const hash = decodeURIComponent(location.hash.slice(1));
+    const stage = stages.find((st) => hash === `stage-${st.id}`);
     if (hash === 'progress') switchView('progress');
+    else if (/^journey(-\d+)?$/.test(hash)) {
+      journey.index = Math.max((+hash.split('-')[1] || 1) - 1, 0);
+      switchView('journey');
+    } else if (stage) selectStage(stage);
+    else if (hash.startsWith('steps=')) selectSteps(hash.slice(6).split(','));
     else if (nodes.has(hash)) {
       if (nodes.get(hash).children.length) open.add(hash);
       selectNode(hash, { focus: 'fit' });

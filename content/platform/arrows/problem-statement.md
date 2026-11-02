@@ -1,0 +1,1 @@
+The user describes the business decision in the chat, such as "Where should we place 2 new bus routes?", and adds the regulations the Project must follow. Agora sends both to Merlin, which stores the regulations in the Project's library and starts the Plan.

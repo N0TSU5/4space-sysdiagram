@@ -3,7 +3,7 @@
 This file controls which boxes and arrows appear on the diagram. Each box's `File`
 gives its starting text, which is copied to the Google Sheet the first time the page
 connects. After that, use the page's Edit button to change box text. Arrow text stays
-in the file named in its `File` column. Paths are relative to the `content/` folder.
+in the file named in its `File` column. Paths are relative to `content/snow/`.
 
 See `README.md` for how to add, move or remove something.
 

@@ -13,8 +13,10 @@
   <nav class="tabs" aria-label="Views">
     <button type="button" id="tab-diagram" class="tab" aria-pressed="true">Diagram</button>
     <button type="button" id="tab-progress" class="tab" aria-pressed="false">Progress</button>
+    <button type="button" id="tab-journey" class="tab" aria-pressed="false">Journey</button>
   </nav>
-  <div class="summary">
+  <nav id="boards" class="subtabs" aria-label="Boards" hidden></nav>
+  <div id="summary" class="summary">
     <div class="bar" aria-hidden="true"><i id="overall-bar"></i></div>
     <span id="overall-text"></span>
     <span id="sync" class="sync"></span>
@@ -36,13 +38,7 @@
     <button type="button" id="zoom-out" class="btn" aria-label="Zoom out">−</button>
     <button type="button" id="zoom-in" class="btn" aria-label="Zoom in">+</button>
   </div>
-  <div class="legend" aria-label="Arrow types">
-    <span class="k-gold"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4"/></svg>Gold data</span>
-    <span class="k-data"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4"/></svg>Data</span>
-    <span class="k-control"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4"/></svg>Control</span>
-    <span class="k-secret"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4"/></svg>Secret</span>
-    <span class="k-agent"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4"/></svg>Agent</span>
-  </div>
+  <div id="legend" class="legend" aria-label="Arrow types"></div>
   <aside id="panel" class="panel" hidden aria-label="Details">
     <button type="button" id="panel-close" class="panel-close" aria-label="Close details">×</button>
     <div id="panel-body"></div>
@@ -66,8 +62,19 @@
   </div>
 </main>
 
+<main id="view-journey" class="view journey-view" hidden>
+  <div id="slide" class="slide" aria-live="polite"></div>
+  <nav class="deck-nav" aria-label="Slides">
+    <button type="button" id="deck-prev" class="btn">← Back</button>
+    <div id="deck-track" class="deck-track"></div>
+    <span id="deck-count" class="deck-count"></span>
+    <button type="button" id="deck-next" class="btn primary">Next →</button>
+  </nav>
+</main>
+
 <script src="vendor/marked.umd.js"></script>
 <script src="vendor/purify.min.js"></script>
+<script src="assets/journey.js"></script>
 <script src="assets/app.js"></script>
 </body>
 </html>
