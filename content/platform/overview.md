@@ -19,7 +19,7 @@ A company can have many Projects, and many users can work on one Project. Everyt
 ## The journey
 
 1. **Onboard:** the user gives Agora raw data, a business problem statement and the regulations the Project must follow.
-2. **Plan:** Merlin's Plan agents design the Golden Datasets, Ontology and models, verify the code, and show the Plan as an interactive document the user can edit.
+2. **Plan:** Merlin's Plan agents design the Golden Datasets, Ontology and models, assemble the pipeline and training code from pre-written building blocks, verify the code, and show the Plan as an interactive document the user can edit.
 3. **Create:** once approved, Orion runs the pipeline and training, Merlin stores the results and generates the Ontology.
 4. **Interact:** the user asks questions, and research agents answer with a deep research document and a layered map.
 

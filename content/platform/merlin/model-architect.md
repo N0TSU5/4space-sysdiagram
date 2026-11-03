@@ -4,4 +4,4 @@ Designs the Project's predictive models from a collection of existing architectu
 
 - The chosen architectures and what each one predicts.
 - The processing that turns the raw data into training data.
-- Training code in TorchTPU, so it runs efficiently on GCP TPUs.
+- Training code in TorchTPU, assembled from FourthSpace's pre-written model training building blocks, so it runs efficiently on GCP TPUs.

@@ -110,7 +110,7 @@ Stage: plan
 Visual: react
 Show: plan-engine
 
-With the schema and rules in hand, Merlin's Plan agents design the Project in a ReAct (Reason + Act) loop. Each architect agent drafts its part and the code that builds it.
+With the schema and rules in hand, Merlin's Plan agents design the Project in a ReAct (Reason + Act) loop. Each architect agent drafts its part and the code that builds it. The pipeline and training code are assembled from pre-written building blocks, so the agents don't start from scratch.
 
 ### Visual
 

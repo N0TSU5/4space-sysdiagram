@@ -36,9 +36,9 @@ them. The slideshow in the Journey tab uses the same IDs.
 | plan-engine | merlin | Plan agents | ReAct loop on Vertex AI Agent Engine | AI agents | 0 | 0 | 1 | 2 | merlin/plan-engine.md |
 | plan-lead | plan-engine | Plan orchestrator | Runs the ReAct loop for the Plan | AI agent | 0 | 0 | 2 | 1 | merlin/plan-orchestrator.md |
 | regs | plan-engine | Regulations library | Added by the user | Knowledge base | 0 | 2 | 1 | 1 | merlin/regulations.md |
-| gold-architect | plan-engine | Golden Dataset architect | Table schemas and PySpark pipeline | AI agent | 1 | 0 | 1 | 1 | merlin/gold-architect.md |
+| gold-architect | plan-engine | Golden Dataset architect | Schemas and pipeline from building blocks | AI agent | 1 | 0 | 1 | 1 | merlin/gold-architect.md |
 | ontology-architect | plan-engine | Ontology architect | Foundry object types and links | AI agent | 1 | 1 | 1 | 1 | merlin/ontology-architect.md |
-| model-architect | plan-engine | Model architect | Architectures and TorchTPU code | AI agent | 1 | 2 | 1 | 1 | merlin/model-architect.md |
+| model-architect | plan-engine | Model architect | Architectures and training building blocks | AI agent | 1 | 2 | 1 | 1 | merlin/model-architect.md |
 | plan-verifier | plan-engine | Verification agent | Formal checks, tests on Cloud Run | AI agent | 2 | 0 | 3 | 1 | merlin/plan-verifier.md |
 | recovery | merlin | Recovery agents | Vertex AI, restart from a checkpoint | AI agents | 0 | 1 | 1 | 1 | merlin/recovery.md |
 | foundry | merlin | Palantir Foundry | One Ontology per Project | Platform | 1 | 1 | 1 | 1 | merlin/foundry.md |
