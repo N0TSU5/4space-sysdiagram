@@ -30,7 +30,7 @@ them. The slideshow in the Journey tab uses the same IDs.
 | raw | orion | Raw data buckets | Cloud Storage, per company | Storage | 0 | 0 | 1 | 1 | orion/raw-bucket.md |
 | secrets | orion | Secret key storage | GCP Secret Manager | Secrets | 0 | 1 | 1 | 1 | orion/secret-manager.md |
 | tpu | orion | TPU training VM | Compute Engine, TorchTPU | Compute | 0 | 2 | 1 | 1 | orion/tpu.md |
-| orion-api | orion | Orion control API | Schema profiling and job runner | Control plane | 1 | 0 | 1 | 1 | orion/control-api.md |
+| orion-api | orion | Orion control API | Cloud Run, profiling and job runner | Control plane | 1 | 0 | 1 | 1 | orion/control-api.md |
 | dataproc | orion | Dataproc Serverless | Runs the Plan's PySpark pipeline | Compute | 1 | 1 | 1 | 1 | orion/dataproc.md |
 | merlin | | Merlin | Core platform and engine, on GCP | Module | 1 | 0 | 1 | 1 | merlin/merlin.md |
 | plan-engine | merlin | Plan agents | ReAct loop on Vertex AI Agent Engine | AI agents | 0 | 0 | 1 | 2 | merlin/plan-engine.md |
@@ -39,13 +39,13 @@ them. The slideshow in the Journey tab uses the same IDs.
 | gold-architect | plan-engine | Golden Dataset architect | Table schemas and PySpark pipeline | AI agent | 1 | 0 | 1 | 1 | merlin/gold-architect.md |
 | ontology-architect | plan-engine | Ontology architect | Foundry object types and links | AI agent | 1 | 1 | 1 | 1 | merlin/ontology-architect.md |
 | model-architect | plan-engine | Model architect | Architectures and TorchTPU code | AI agent | 1 | 2 | 1 | 1 | merlin/model-architect.md |
-| plan-verifier | plan-engine | Verification agent | Formal verification and unit tests | AI agent | 2 | 0 | 3 | 1 | merlin/plan-verifier.md |
-| recovery | merlin | Recovery agents | Audit, fix and restart from a checkpoint | AI agents | 0 | 1 | 1 | 1 | merlin/recovery.md |
+| plan-verifier | plan-engine | Verification agent | Formal checks, tests on Cloud Run | AI agent | 2 | 0 | 3 | 1 | merlin/plan-verifier.md |
+| recovery | merlin | Recovery agents | Vertex AI, restart from a checkpoint | AI agents | 0 | 1 | 1 | 1 | merlin/recovery.md |
 | foundry | merlin | Palantir Foundry | One Ontology per Project | Platform | 1 | 1 | 1 | 1 | merlin/foundry.md |
 | data-connection | foundry | 1. GCS Data Connection | Points at the Project's Golden Datasets | Foundry step | 0 | 0 | 1 | 1 | merlin/foundry-data-connection.md |
 | virtual-tables | foundry | 2. Virtual Tables | Zero-copy data access | Foundry step | 0 | 1 | 1 | 1 | merlin/foundry-virtual-tables.md |
 | ontology | foundry | 3. Ontology Graph | Generated from the Plan | Foundry step | 0 | 2 | 1 | 1 | merlin/foundry-ontology.md |
-| project-store | merlin | Project store | Everything a Project owns | Storage | 0 | 2 | 1 | 1 | merlin/project-store.md |
+| project-store | merlin | Project store | Metadata in Cloud SQL | Storage | 0 | 2 | 1 | 1 | merlin/project-store.md |
 | gold | project-store | Golden Datasets | Apache Iceberg, Spacetime-H3 | Storage | 0 | 0 | 1 | 1 | merlin/golden-datasets.md |
 | models | project-store | Predictive models | Vertex AI Model Registry | Model store | 0 | 1 | 1 | 1 | merlin/models.md |
 | research | merlin | Research agents | ReAct loop on Vertex AI Agent Engine | AI agents | 1 | 2 | 1 | 1 | merlin/research.md |
@@ -53,9 +53,9 @@ them. The slideshow in the Journey tab uses the same IDs.
 | analyst | research | Analyst agent | Queries data, Ontology and models | AI agent | 0 | 1 | 1 | 1 | merlin/agent-analyst.md |
 | reporter | research | Report agent | Checks grounding, writes the answer | AI agent | 0 | 2 | 1 | 1 | merlin/agent-reporter.md |
 | agora | | Agora | User workspace | Module | 2 | 0 | 1 | 1 | agora/agora.md |
-| plan-doc | agora | Plan document | Interactive Plan review | UI window | 0 | 0 | 1 | 1 | agora/plan-doc.md |
+| plan-doc | agora | Plan document | Interactive review, in Cloud SQL | UI window | 0 | 0 | 1 | 1 | agora/plan-doc.md |
 | chat | agora | Chat interface | Onboarding and questions | UI window | 0 | 1 | 1 | 1 | agora/chat.md |
-| map | agora | Layered map | MapLibre, Deck.gl, PMTiles | UI window | 0 | 2 | 1 | 1 | agora/map.md |
+| map | agora | Layered map | MapLibre, Deck.gl, tiles on Cloud CDN | UI window | 0 | 2 | 1 | 1 | agora/map.md |
 | studio | agora | Deep research document | Report, tables and sources | UI window | 0 | 3 | 1 | 1 | agora/studio.md |
 
 ## Arrows

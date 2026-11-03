@@ -1,4 +1,4 @@
-AI agents that step in when something fails while a Project is being created.
+AI agents on Vertex AI that step in when something fails while a Project is being created.
 
 ## Steps
 

@@ -1,4 +1,4 @@
-The single entry point Merlin uses to work with Orion.
+The single entry point Merlin uses to work with Orion. It runs on Cloud Run.
 
 ## Steps
 

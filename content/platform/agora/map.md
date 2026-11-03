@@ -1,4 +1,4 @@
-An interactive layered map built on the **MapLibre and Deck.gl** 3D map renderer, using **PMTiles** for map tiles.
+An interactive layered map built on the **MapLibre and Deck.gl** 3D map renderer, using **PMTiles** map tiles served from **Cloud CDN**.
 
 ## Displays
 

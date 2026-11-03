@@ -1,1 +1,1 @@
-Everything a Project owns, stored on GCP. Each Project has its own Golden Datasets, models and Ontology, and many users can work on the same Project.
+Everything a Project owns, stored on GCP. The Project's metadata, such as its owner company and users, is stored in Cloud SQL. Each Project has its own Golden Datasets, models and Ontology, and many users can work on the same Project.
