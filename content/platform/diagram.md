@@ -72,48 +72,49 @@ them. The slideshow in the Journey tab uses the same IDs.
 - `Direction` is `one` or `both`.
 - `Route` is optional. Use `down` to leave the bottom of the first box, `top` to run above
   neighbouring boxes, or `over` to run above the whole diagram.
-- Numbered labels match the steps in the Journey slideshow.
-- An arrow's file is optional. If that file has a `## Steps` or `## Datasets` list, the list
-  is also shown on the arrow.
+- `Label` is the step number, if any, and the name of the payload the arrow carries. Numbers
+  match the steps in the Journey slideshow.
+- The arrow's file describes the payload's schema, shown when the arrow is clicked. If that
+  file has a `## Steps` or `## Datasets` list, the list is also shown on the arrow.
 
 | From | To | Label | Kind | Direction | Route | Stage | File |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| signin | identity | 0.1 Sign in | control | both | | access | arrows/sign-in.md |
-| signin | accounts-api | 0.2 Invites and Projects | control | both | | access | arrows/tenant-admin.md |
-| identity | accounts-api | Verified token | secret | one | | access | |
-| accounts-api | accounts-db | 0.3 Users, roles and Projects | data | both | | access | |
-| accounts-api | orion-api | 0.4 New company bucket | control | one | | access | |
-| agora | raw | 1.1 Raw data upload | data | one | over | onboard | arrows/raw-upload.md |
-| chat | plan-engine | 1.2 Problem and regulations | agent | one | | onboard | arrows/problem-statement.md |
-| plan-lead | orion-api | 2.1 Schema and size | control | both | | plan | arrows/schema-request.md |
-| raw | orion-api | | data | one | | plan | |
-| regs | plan-lead | 2.2 Legal rules | data | one | | plan | |
-| plan-lead | gold-architect | | agent | one | | plan | |
-| plan-lead | ontology-architect | | agent | one | | plan | |
-| plan-lead | model-architect | | agent | one | | plan | |
-| gold-architect | plan-verifier | | agent | one | | plan | |
-| ontology-architect | plan-verifier | | agent | one | | plan | |
-| model-architect | plan-verifier | | agent | one | | plan | |
-| plan-verifier | plan-doc | 2.3 Plan for review | agent | one | | plan | arrows/plan-review.md |
-| plan-doc | plan-engine | 2.4 Edits and approval | control | one | | plan | arrows/plan-edits.md |
-| plan-lead | orion-api | 3.1 Pipeline code | control | one | | create | arrows/kickstart.md |
-| orion-api | dataproc | | control | one | | create | |
-| plan-lead | training | Training job | control | one | | create | |
-| raw | dataproc | | data | one | | create | |
-| dataproc | training | Anonymised training data | data | one | | create | arrows/training-data.md |
-| secrets | dataproc | Hashing keys | secret | one | | create | |
-| dataproc | gold | 3.2 Golden Datasets | gold | one | | create | arrows/golden-datasets.md |
-| training | models | 3.3 Trained models | data | one | | create | |
-| gold | data-connection | 3.4 Ontology generation | data | one | | create | arrows/ontology-generation.md |
-| data-connection | virtual-tables | | data | one | | create | |
-| virtual-tables | ontology | | data | one | | create | |
-| recovery | orion-api | 3.5 Audit and restart | control | both | | create | arrows/recovery.md |
-| merlin | chat | 3.6 Project ready | control | one | | create | |
-| chat | planner | 4.1 Questions and answers | agent | both | | interact | arrows/questions.md |
-| planner | analyst | | agent | one | | interact | |
-| analyst | reporter | | agent | one | | interact | |
-| analyst | gold | 4.2 Dataset queries | agent | both | | interact | |
-| analyst | models | 4.3 Predictions | agent | both | | interact | |
-| research | ontology | 4.4 Ontology queries | agent | both | | interact | |
-| reporter | studio | 4.5 Deep research document | data | one | | interact | |
-| reporter | map | 4.6 Map layers | data | one | | interact | |
+| signin | identity | 0.1 IdToken | control | both |  | access | arrows/sign-in.md |
+| signin | accounts-api | 0.2 AccountsRequest | control | both |  | access | arrows/tenant-admin.md |
+| identity | accounts-api | TokenClaims | secret | one |  | access | arrows/token-claims.md |
+| accounts-api | accounts-db | 0.3 AccountRecords | data | both |  | access | arrows/account-records.md |
+| accounts-api | orion-api | 0.4 CreateCompany | control | one |  | access | arrows/create-company.md |
+| agora | raw | 1.1 RawUpload | data | one | over | onboard | arrows/raw-upload.md |
+| chat | plan-engine | 1.2 ProblemStatement | agent | one |  | onboard | arrows/problem-statement.md |
+| plan-lead | orion-api | 2.1 DatasetProfile | control | both |  | plan | arrows/schema-request.md |
+| raw | orion-api | FileMetadata | data | one |  | plan | arrows/file-metadata.md |
+| regs | plan-lead | 2.2 RegulationContext | data | one |  | plan | arrows/regulation-context.md |
+| plan-lead | gold-architect | ArchitectBrief | agent | one |  | plan | arrows/brief-gold.md |
+| plan-lead | ontology-architect | ArchitectBrief | agent | one |  | plan | arrows/brief-ontology.md |
+| plan-lead | model-architect | ArchitectBrief | agent | one |  | plan | arrows/brief-model.md |
+| gold-architect | plan-verifier | GoldDraft | agent | one |  | plan | arrows/draft-gold.md |
+| ontology-architect | plan-verifier | OntologyDraft | agent | one |  | plan | arrows/draft-ontology.md |
+| model-architect | plan-verifier | ModelDraft | agent | one |  | plan | arrows/draft-model.md |
+| plan-verifier | plan-doc | 2.3 PlanVersion | agent | one |  | plan | arrows/plan-review.md |
+| plan-doc | plan-engine | 2.4 PlanPatch | control | one |  | plan | arrows/plan-edits.md |
+| plan-lead | orion-api | 3.1 PipelineJobSpec | control | one |  | create | arrows/kickstart.md |
+| orion-api | dataproc | BatchSpec | control | one |  | create | arrows/batch-spec.md |
+| plan-lead | training | TrainingJobSpec | control | one |  | create | arrows/training-job.md |
+| raw | dataproc | RawFiles | data | one |  | create | arrows/raw-files.md |
+| dataproc | training | TrainingDataset | data | one |  | create | arrows/training-data.md |
+| secrets | dataproc | HmacKey | secret | one |  | create | arrows/hmac-key.md |
+| dataproc | gold | 3.2 IcebergCommit | gold | one |  | create | arrows/golden-datasets.md |
+| training | models | 3.3 ModelVersion | data | one |  | create | arrows/model-version.md |
+| gold | data-connection | 3.4 IcebergSnapshot | data | one |  | create | arrows/ontology-generation.md |
+| data-connection | virtual-tables | TableRegistration | data | one |  | create | arrows/table-registration.md |
+| virtual-tables | ontology | ObjectTypeBinding | data | one |  | create | arrows/object-type-binding.md |
+| recovery | orion-api | 3.5 JobEvent | control | both |  | create | arrows/recovery.md |
+| merlin | chat | 3.6 ProjectReady | control | one |  | create | arrows/project-ready.md |
+| chat | planner | 4.1 Question | agent | both |  | interact | arrows/questions.md |
+| planner | analyst | ResearchPlan | agent | one |  | interact | arrows/research-plan.md |
+| analyst | reporter | EvidenceLedger | agent | one |  | interact | arrows/evidence-ledger.md |
+| analyst | gold | 4.2 GoldQuery | agent | both |  | interact | arrows/gold-query.md |
+| analyst | models | 4.3 Scenario | agent | both |  | interact | arrows/scenario.md |
+| research | ontology | 4.4 OntologyQuery | agent | both |  | interact | arrows/ontology-query.md |
+| reporter | studio | 4.5 Report | data | one |  | interact | arrows/report.md |
+| reporter | map | 4.6 MapLayer | data | one |  | interact | arrows/map-layer.md |

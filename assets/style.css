@@ -352,6 +352,7 @@ figure.flowchart.broken { color: var(--blocked); font: 12px/1.4 var(--mono); tex
 .md table { width: 100%; margin: 0 0 12px; border-collapse: collapse; font-size: .93em; }
 .md th, .md td { padding: 5px 8px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
 .md th { background: var(--surface-2); }
+.md td:first-child code { white-space: nowrap; }
 .panel-close { position: absolute; top: 10px; right: 12px; width: 30px; height: 30px; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 21px; line-height: 1; cursor: pointer; }
 .panel-close:hover { background: var(--surface-2); }
 .crumbs { display: flex; flex-wrap: wrap; gap: 3px; padding-right: 30px; color: var(--muted); font-size: 12px; }

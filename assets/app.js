@@ -1041,8 +1041,8 @@
     setHash(id);
   }
 
-  function selectEdge(e) {
-    selected = { type: 'edge', edge: e };
+  function selectEdge(e, { modal = false } = {}) {
+    selected = { type: 'edge', edge: e, modal };
     showPanel();
     markSelection();
     setHash('');
@@ -1182,7 +1182,7 @@
       showNode(body, selected.node);
     }
     // Box details open as a wide modal so their flowcharts have room.
-    const modal = selected.type === 'node' && selected.modal && !editing;
+    const modal = (selected.type === 'node' || selected.type === 'edge') && selected.modal && !editing;
     $('panel').classList.toggle('modal', modal);
     $('backdrop').hidden = !modal;
     $('panel').hidden = false;
@@ -1232,7 +1232,7 @@
 
     const inbound = edges.filter((e) => e.to === n.id);
     const outbound = edges.filter((e) => e.from === n.id);
-    const describe = (e, other) => linkButton(`${nodes.get(other).label}${e.label ? ` (${e.label})` : ''}`, () => selectEdge(e));
+    const describe = (e, other) => linkButton(`${nodes.get(other).label}${e.label ? ` (${e.label})` : ''}`, () => selectEdge(e, { modal: selected.modal }));
     if (inbound.length) body.append(section('Receives from', listOf(inbound.map((e) => describe(e, e.from)))));
     if (outbound.length) body.append(section('Connects to', listOf(outbound.map((e) => describe(e, e.to)))));
     body.append(boxSource(n));
@@ -1241,11 +1241,11 @@
   function showEdge(body, e) {
     const from = nodes.get(e.from);
     const to = nodes.get(e.to);
-    header(body, e.label || `${from.label} to ${to.label}`, e.both ? 'Two-way connection' : 'One-way connection');
+    header(body, e.label || `${from.label} to ${to.label}`, `${from.label} ${e.both ? '↔' : '→'} ${to.label}`);
     if (e.md) body.append(renderMd(e.md));
     body.append(section('Connects', listOf([
-      linkButton(from.label, () => selectNode(from.id)),
-      linkButton(to.label, () => selectNode(to.id)),
+      linkButton(from.label, () => selectNode(from.id, { modal: selected.modal })),
+      linkButton(to.label, () => selectNode(to.id, { modal: selected.modal })),
     ])));
     if (e.file) body.append(sourceNote(e.file));
   }
@@ -1631,7 +1631,7 @@
     canvas.addEventListener('click', (ev) => {
       if (suppressClick) { suppressClick = false; return; }
       const edgeEl = ev.target.closest('[data-edge]');
-      if (edgeEl) { selectEdge(edges[+edgeEl.dataset.edge]); return; }
+      if (edgeEl) { selectEdge(edges[+edgeEl.dataset.edge], { modal: true }); return; }
       if (ev.target.closest('.box')) onBoxClick(ev);
       else if (selected) clearSelection();
     });
