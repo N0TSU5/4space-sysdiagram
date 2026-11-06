@@ -14,9 +14,10 @@ them. The slideshow in the Journey tab uses the same IDs.
 
 | ID | Label | Description |
 | --- | --- | --- |
+| access | 0. Sign in | Users sign in with GCP Identity Platform under their company's tenant. Company admins invite users and create Projects, which Merlin records in its Cloud SQL accounts database. |
 | onboard | 1. Onboard | The user supplies raw data, a business problem statement and the regulations the Project must follow, through Agora. |
 | plan | 2. Plan | Merlin's Plan agents design the Golden Datasets, Ontology and predictive models, verify the code, and hand the Plan to the user for review. |
-| create | 3. Create | Once the user approves, Orion runs the pipeline and model training, Merlin stores the results and generates the Ontology, and recovery agents restart failed work from a checkpoint. |
+| create | 3. Create | Once the user approves, Orion runs the pipeline and anonymises the training data, Merlin trains the models on CPU or GPU, stores the results and generates the Ontology, and recovery agents restart failed work from a checkpoint. |
 | interact | 4. Interact | The user asks questions. Research agents query the Golden Datasets, Ontology and models, and answer with a deep research document and a layered map. |
 
 ## Boxes
@@ -29,7 +30,6 @@ them. The slideshow in the Journey tab uses the same IDs.
 | orion | | Orion | Customer data and compute | Trust boundary | 0 | 0 | 1 | 1 | orion/orion.md |
 | raw | orion | Raw data buckets | Cloud Storage, per company | Storage | 0 | 0 | 1 | 1 | orion/raw-bucket.md |
 | secrets | orion | Secret key storage | GCP Secret Manager | Secrets | 0 | 1 | 1 | 1 | orion/secret-manager.md |
-| tpu | orion | TPU training VM | Compute Engine, TorchTPU | Compute | 0 | 2 | 1 | 1 | orion/tpu.md |
 | orion-api | orion | Orion control API | Cloud Run, profiling and job runner | Control plane | 1 | 0 | 1 | 1 | orion/control-api.md |
 | dataproc | orion | Dataproc Serverless | Runs the Plan's PySpark pipeline | Compute | 1 | 1 | 1 | 1 | orion/dataproc.md |
 | merlin | | Merlin | Core platform and engine, on GCP | Module | 1 | 0 | 1 | 1 | merlin/merlin.md |
@@ -45,6 +45,11 @@ them. The slideshow in the Journey tab uses the same IDs.
 | data-connection | foundry | 1. GCS Data Connection | Points at the Project's Golden Datasets | Foundry step | 0 | 0 | 1 | 1 | merlin/foundry-data-connection.md |
 | virtual-tables | foundry | 2. Virtual Tables | Zero-copy data access | Foundry step | 0 | 1 | 1 | 1 | merlin/foundry-virtual-tables.md |
 | ontology | foundry | 3. Ontology Graph | Generated from the Plan | Foundry step | 0 | 2 | 1 | 1 | merlin/foundry-ontology.md |
+| training | merlin | Model training | Vertex AI Training, CPU or GPU | Compute | 0 | 3 | 1 | 1 | merlin/training.md |
+| accounts | merlin | Accounts | Sign-in, tenants and Projects | Platform service | 1 | 3 | 1 | 1 | merlin/accounts.md |
+| identity | accounts | Sign-in | GCP Identity Platform, a tenant per company | Identity | 0 | 0 | 1 | 1 | merlin/identity.md |
+| accounts-api | accounts | Accounts API | Cloud Run, checks every request | Control plane | 0 | 1 | 1 | 1 | merlin/accounts-api.md |
+| accounts-db | accounts | Accounts database | Cloud SQL: companies, users, Projects, roles | Database | 0 | 2 | 1 | 1 | merlin/accounts-db.md |
 | project-store | merlin | Project store | Metadata in Cloud SQL | Storage | 0 | 2 | 1 | 1 | merlin/project-store.md |
 | gold | project-store | Golden Datasets | Apache Iceberg, Spacetime-H3 | Storage | 0 | 0 | 1 | 1 | merlin/golden-datasets.md |
 | models | project-store | Predictive models | Vertex AI Model Registry | Model store | 0 | 1 | 1 | 1 | merlin/models.md |
@@ -53,10 +58,11 @@ them. The slideshow in the Journey tab uses the same IDs.
 | analyst | research | Analyst agent | Queries data, Ontology and models | AI agent | 0 | 1 | 1 | 1 | merlin/agent-analyst.md |
 | reporter | research | Report agent | Checks grounding, writes the answer | AI agent | 0 | 2 | 1 | 1 | merlin/agent-reporter.md |
 | agora | | Agora | User workspace | Module | 2 | 0 | 1 | 1 | agora/agora.md |
-| plan-doc | agora | Plan document | Interactive review, in Cloud SQL | UI window | 0 | 0 | 1 | 1 | agora/plan-doc.md |
-| chat | agora | Chat interface | Onboarding and questions | UI window | 0 | 1 | 1 | 1 | agora/chat.md |
-| map | agora | Layered map | MapLibre, Deck.gl, tiles on Cloud CDN | UI window | 0 | 2 | 1 | 1 | agora/map.md |
-| studio | agora | Deep research document | Report, tables and sources | UI window | 0 | 3 | 1 | 1 | agora/studio.md |
+| signin | agora | Sign-in and admin | Log in, invite users, manage Projects | UI window | 0 | 0 | 1 | 1 | agora/signin.md |
+| plan-doc | agora | Plan document | Interactive review, in Cloud SQL | UI window | 0 | 1 | 1 | 1 | agora/plan-doc.md |
+| chat | agora | Chat interface | Onboarding and questions | UI window | 0 | 2 | 1 | 1 | agora/chat.md |
+| map | agora | Layered map | MapLibre, Deck.gl, tiles on Cloud CDN | UI window | 0 | 3 | 1 | 1 | agora/map.md |
+| studio | agora | Deep research document | Report, tables and sources | UI window | 0 | 4 | 1 | 1 | agora/studio.md |
 
 ## Arrows
 
@@ -72,6 +78,11 @@ them. The slideshow in the Journey tab uses the same IDs.
 
 | From | To | Label | Kind | Direction | Route | Stage | File |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| signin | identity | 0.1 Sign in | control | both | | access | arrows/sign-in.md |
+| signin | accounts-api | 0.2 Invites and Projects | control | both | | access | arrows/tenant-admin.md |
+| identity | accounts-api | Verified token | secret | one | | access | |
+| accounts-api | accounts-db | 0.3 Users, roles and Projects | data | both | | access | |
+| accounts-api | orion-api | 0.4 New company bucket | control | one | | access | |
 | agora | raw | 1.1 Raw data upload | data | one | over | onboard | arrows/raw-upload.md |
 | chat | plan-engine | 1.2 Problem and regulations | agent | one | | onboard | arrows/problem-statement.md |
 | plan-lead | orion-api | 2.1 Schema and size | control | both | | plan | arrows/schema-request.md |
@@ -85,14 +96,14 @@ them. The slideshow in the Journey tab uses the same IDs.
 | model-architect | plan-verifier | | agent | one | | plan | |
 | plan-verifier | plan-doc | 2.3 Plan for review | agent | one | | plan | arrows/plan-review.md |
 | plan-doc | plan-engine | 2.4 Edits and approval | control | one | | plan | arrows/plan-edits.md |
-| plan-lead | orion-api | 3.1 Pipeline and training code | control | one | | create | arrows/kickstart.md |
+| plan-lead | orion-api | 3.1 Pipeline code | control | one | | create | arrows/kickstart.md |
 | orion-api | dataproc | | control | one | | create | |
-| orion-api | tpu | | control | one | | create | |
+| plan-lead | training | Training job | control | one | | create | |
 | raw | dataproc | | data | one | | create | |
-| dataproc | tpu | Training data | data | one | | create | |
+| dataproc | training | Anonymised training data | data | one | | create | arrows/training-data.md |
 | secrets | dataproc | Hashing keys | secret | one | | create | |
 | dataproc | gold | 3.2 Golden Datasets | gold | one | | create | arrows/golden-datasets.md |
-| tpu | models | 3.3 Trained models | data | one | | create | |
+| training | models | 3.3 Trained models | data | one | | create | |
 | gold | data-connection | 3.4 Ontology generation | data | one | | create | arrows/ontology-generation.md |
 | data-connection | virtual-tables | | data | one | | create | |
 | virtual-tables | ontology | | data | one | | create | |

@@ -18,9 +18,10 @@ A company can have many Projects, and many users can work on one Project. Everyt
 
 ## The journey
 
+0. **Sign in:** users sign in under their company's tenant. Company admins invite users and create Projects.
 1. **Onboard:** the user gives Agora raw data, a business problem statement and the regulations the Project must follow.
 2. **Plan:** Merlin's Plan agents design the Golden Datasets, Ontology and models, assemble the pipeline and training code from pre-written building blocks, verify the code, and show the Plan as an interactive document the user can edit.
-3. **Create:** once approved, Orion runs the pipeline and training, Merlin stores the results and generates the Ontology.
+3. **Create:** once approved, Orion runs the pipeline and anonymises the training data. Merlin trains the models on CPU or GPU, stores the results and generates the Ontology.
 4. **Interact:** the user asks questions, and research agents answer with a deep research document and a layered map.
 
 The **Journey** tab walks through each step.
@@ -30,5 +31,6 @@ The **Journey** tab walks through each step.
 - Arrow colours show the journey stage. Click a stage in the legend to highlight its arrows.
 - Arrow numbers match the steps in the Journey tab.
 - Click a module or a box with a **+** to expand it, and click an arrow to read about it.
+- Click a box to open its details: a flowchart of its data flows and the software it uses.
 - Tick a box's checkbox to mark it done, and use the **Progress** tab for owners, statuses and notes.
 - Drag to pan and scroll to zoom.

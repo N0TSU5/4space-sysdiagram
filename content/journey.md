@@ -66,6 +66,15 @@ The Project's models predict how a Spacetime-H3 hexagon changes over time. Agent
 - In 2 weeks
 - In 6 weeks
 
+## Signing in to a company's workspace
+Stage: access
+Show: signin, identity, accounts-api, accounts-db
+Arrows: 0.1, 0.2, 0.3, 0.4
+
+Each customer company is its own tenant. Users sign in with their company's SSO or an email link, and only see the Projects they've been added to.
+
+Company admins invite users, create Projects and set each member's role: Owner, Editor or Viewer. A new company also gets its own raw data bucket in Orion.
+
 ## Onboarding: data, a problem and its rules
 Stage: onboard
 Visual: onboard
@@ -119,7 +128,7 @@ With the schema and rules in hand, Merlin's Plan agents design the Project in a 
 - Observe
 - Golden Datasets: Tables, columns and the PySpark pipeline
 - Ontology: Object types and links for Foundry
-- Models: Architectures and TorchTPU training code
+- Models: Architectures and CPU or GPU training code
 
 ## Verified before anything runs
 Stage: plan
@@ -158,18 +167,18 @@ It works like editing a Deep Research plan or a coding agent's implementation pl
 ## Approval starts creation
 Stage: create
 Visual: create
-Show: orion-api, dataproc, tpu, gold, models, foundry
+Show: orion-api, dataproc, training, gold, models, foundry
 Arrows: 3.1, 3.2, 3.3, 3.4
 
-When the user approves the Plan, Merlin sends the code to Orion. The PySpark pipeline runs on Dataproc Serverless, building the Golden Datasets and a version of the raw data processed for training. Model training runs on a TPU VM.
+When the user approves the Plan, Merlin sends the pipeline code to Orion. The PySpark pipeline runs on Dataproc Serverless, building the Golden Datasets and an anonymised copy of the data for training. Model training runs in Merlin on Vertex AI, on CPU or GPU.
 
 The Golden Datasets and models are stored in Merlin, and the Ontology Graph is generated from them.
 
 ### Visual
 
-- Dataproc Serverless: PySpark pipeline and training data
+- Dataproc Serverless: PySpark pipeline and anonymised training data
 - Golden Datasets
-- TPU VM: TorchTPU training on the processed data
+- Vertex AI: CPU or GPU training on the anonymised data
 - Predictive models
 - Ontology Graph generated
 

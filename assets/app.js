@@ -102,7 +102,30 @@
     div.querySelectorAll('blockquote').forEach((q) => {
       if (q.textContent.trim().startsWith('To confirm:')) q.classList.add('flag');
     });
+    div.querySelectorAll('pre > code.language-mermaid').forEach((code) => renderFlowchart(code.parentElement, code.textContent));
     return div;
+  }
+
+  // Draws a ```mermaid block as a flowchart, falling back to the source if it doesn't parse.
+  let mermaidReady = false;
+  let flowchartCount = 0;
+  function renderFlowchart(pre, source) {
+    if (!window.mermaid) return;
+    if (!mermaidReady) {
+      const dark = matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme !== 'light';
+      mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: dark ? 'dark' : 'neutral', flowchart: { htmlLabels: false, curve: 'basis' } });
+      mermaidReady = true;
+    }
+    const fig = document.createElement('figure');
+    fig.className = 'flowchart';
+    pre.replaceWith(fig);
+    flowchartCount += 1;
+    mermaid.render(`flowchart-${flowchartCount}`, source)
+      .then(({ svg }) => { fig.innerHTML = svg; })
+      .catch((err) => {
+        fig.classList.add('broken');
+        fig.textContent = `Flowchart error: ${err.message || err}\n\n${source}`;
+      });
   }
 
   // Which board this page shows, from ?board= or the first row of content/boards.md.
@@ -958,7 +981,7 @@
 
   function viewport() {
     const c = $('canvas');
-    const panelOpen = !$('panel').hidden;
+    const panelOpen = !$('panel').hidden && !$('panel').classList.contains('modal');
     const wide = innerWidth > 720;
     return {
       w: c.clientWidth - (panelOpen && wide ? $('panel').offsetWidth : 0),
@@ -1004,11 +1027,11 @@
 
   /* ---------- Selection and panel ---------- */
 
-  function selectNode(id, { focus = 'show' } = {}) {
+  function selectNode(id, { focus = 'show', modal = false } = {}) {
     const n = nodes.get(id);
     if (!n) return;
     ancestors(n).forEach((a) => open.add(a.id));
-    selected = { type: 'node', node: n };
+    selected = { type: 'node', node: n, modal };
     showPanel();
     layout();
     const t = targets.get(id);
@@ -1041,6 +1064,7 @@
   function clearSelection() {
     selected = null;
     $('panel').hidden = true;
+    $('backdrop').hidden = true;
     markSelection();
     setHash('');
   }
@@ -1157,6 +1181,10 @@
     } else {
       showNode(body, selected.node);
     }
+    // Box details open as a wide modal so their flowcharts have room.
+    const modal = selected.type === 'node' && selected.modal && !editing;
+    $('panel').classList.toggle('modal', modal);
+    $('backdrop').hidden = !modal;
     $('panel').hidden = false;
     $('panel').scrollTop = 0;
   }
@@ -1168,7 +1196,7 @@
       crumbs.className = 'crumbs';
       chain.forEach((a, i) => {
         if (i) crumbs.append(' / ');
-        crumbs.append(linkButton(a.label, () => selectNode(a.id)));
+        crumbs.append(linkButton(a.label, () => selectNode(a.id, { modal: n === selected.node && selected.modal })));
       });
       body.append(crumbs);
     }
@@ -1197,7 +1225,7 @@
       p.textContent = `${countDone(leaves)} of ${leaves.length} done`;
       p.dataset.count = n.id;
       body.append(section('Progress', p));
-      body.append(section('Inside this box', listOf(n.children.map((c) => linkButton(c.label, () => selectNode(c.id, { focus: 'show' }))))));
+      body.append(section('Inside this box', listOf(n.children.map((c) => linkButton(c.label, () => selectNode(c.id, { focus: 'show', modal: selected.modal }))))));
     } else {
       body.append(section('Progress', progressFields(n)));
     }
@@ -1539,11 +1567,11 @@
       if (ev.target.closest('.expander')) toggleBox(n);
       else if (!selected || selected.node !== n) selectNode(n.id, { focus: 'none' });
     } else if (isOpen(n) && !ev.target.closest('.box-main')) {
-      selectNode(n.id, { focus: 'none' });
+      selectNode(n.id, { focus: 'none', modal: true });
     } else if (n.children.length) {
       toggleBox(n);
     } else {
-      selectNode(n.id);
+      selectNode(n.id, { focus: 'none', modal: true });
     }
   }
 
@@ -1609,6 +1637,7 @@
     });
 
     $('panel-close').addEventListener('click', clearSelection);
+    $('backdrop').addEventListener('click', clearSelection);
     $('edit').addEventListener('click', () => setEditing(!editing));
     $('about').addEventListener('click', () => { selected = { type: 'about' }; showPanel(); markSelection(); });
     $('fit').addEventListener('click', () => animateTo(fitCam(bounds())));
