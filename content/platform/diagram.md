@@ -63,6 +63,9 @@ them. The slideshow in the Journey tab uses the same IDs.
 | chat | agora | Chat interface | Onboarding and questions | UI window | 0 | 2 | 1 | 1 | agora/chat.md |
 | map | agora | Layered map | MapLibre, Deck.gl, tiles on Cloud CDN | UI window | 0 | 3 | 1 | 1 | agora/map.md |
 | studio | agora | Deep research document | Report, tables and sources | UI window | 0 | 4 | 1 | 1 | agora/studio.md |
+| hosting | agora | Agora hosting | Load balancer, Cloud Armor, Cloud CDN | Platform service | 0 | 5 | 1 | 1 | agora/hosting.md |
+| edge | hosting | HTTPS load balancer | Cloud Armor, Cloud CDN | Edge | 0 | 0 | 1 | 1 | agora/edge.md |
+| basemap | hosting | Basemap tiles | Cloud Storage, PMTiles | Storage | 0 | 1 | 1 | 1 | agora/basemap.md |
 
 ## Arrows
 
@@ -117,4 +120,6 @@ them. The slideshow in the Journey tab uses the same IDs.
 | analyst | models | 4.3 Scenario | agent | both |  | interact | arrows/scenario.md |
 | research | ontology | 4.4 OntologyQuery | agent | both |  | interact | arrows/ontology-query.md |
 | reporter | studio | 4.5 Report | data | one |  | interact | arrows/report.md |
+| basemap | edge | PmtilesObject | data | one | | interact | arrows/tile-origin.md |
+| edge | map | BasemapTiles | data | one | | interact | arrows/basemap-tiles.md |
 | reporter | map | 4.6 MapLayer | data | one |  | interact | arrows/map-layer.md |

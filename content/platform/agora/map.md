@@ -10,7 +10,7 @@ An interactive layered map built on the **MapLibre and Deck.gl** 3D map renderer
 
 ```mermaid
 flowchart LR
-  CDN["Cloud CDN"] -->|"basemap PMTiles"| ML["MapLibre basemap"]
+  CDN["Cloud CDN, Agora hosting"] -->|"basemap PMTiles"| ML["MapLibre basemap"]
   RA["Report agent"] -->|"MapLayer JSON"| ST[("Project store: reports")]
   ST -->|"GET layers, with token"| LS["Layer store in browser"]
   LS --> DK["deck.gl layers"]
@@ -37,7 +37,7 @@ flowchart LR
 
 ## Configuration and metadata
 
-- Basemap PMTiles in a public Cloud Storage bucket behind Cloud CDN, cached 30 days. Holds no customer data.
+- Basemap PMTiles come from the Basemap tiles box through the HTTPS load balancer's Cloud CDN, cached 30 days. No customer data.
 - Project layers are never on the CDN; they come from Merlin with the user's token.
 - Each `MapLayer`: ID, kind, H3 resolution, cell values, colour scale, legend, evidence IDs.
 
