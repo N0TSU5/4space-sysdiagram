@@ -11,7 +11,8 @@ flowchart LR
   SCH -->|"run_period.sh"| DP["Dataproc Serverless"]
   RAW --> DP
   SM["Secret Manager"] -->|"snow-hash-secret"| DP
-  DP --> P1["P1 clean and stays"] --> P2["P2 home"] --> P3["P3 index"] --> PG{"P3.15 privacy gate"}
+  REF[("Reference bucket: ONS, Census, IoD, MHIP")] --> DP
+  DP --> P1["P1 clean and stays"] --> P2["P2 home"] --> P3["P3 index"] --> PA["P3 aggregation with demographics"] --> PG{"P3.15 privacy gate"}
   PG -->|"pass: Gold Parquet"| G[("gold@datalake4us, Merlin")]
   PG -->|"fail"| STOP["Run stops, nothing published"]
 ```
@@ -40,6 +41,7 @@ classDiagram
     p1_stays
     p2_home
     p3_index
+    p3_aggregate
     p3_gate
   }
   class snow_runner {

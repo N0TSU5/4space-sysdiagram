@@ -30,7 +30,7 @@ flowchart LR
 
 - PySpark with **Apache Sedona** spatial join on LSOA polygons.
 - **h3-py** for resolution 10 cells.
-- Reference tables: ONS LSOA 2021 boundaries and mid-year population, loaded from a reference bucket.
+- Reference tables: ONS LSOA 2021 boundaries and mid-year population, read from the Reference data bucket.
 
 ## Configuration and metadata
 

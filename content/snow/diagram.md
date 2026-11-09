@@ -17,12 +17,14 @@ See `README.md` for how to add, move or remove something.
 | raw | orion | Raw bucket storage | raw@datalake4us | Storage | 0 | 0 | 1 | orion/raw-bucket.md |
 | scheduler | orion | Scheduler and event listener | Pub/Sub, Workflows or Composer | Trigger | 0 | 1 | 1 | orion/scheduler.md |
 | secrets | orion | Secret key storage | GCP Secret Manager | Secrets | 0 | 2 | 1 | orion/secret-manager.md |
-| dataproc | orion | Dataproc Serverless | PySpark 3.5, Runtime 2.2 | Compute | 1 | 0 | 3 | orion/dataproc.md |
+| reference | orion | Reference data bucket | ONS, Census 2021, IoD 2025, MHIP | Storage | 0 | 3 | 1 | orion/reference-bucket.md |
+| dataproc | orion | Dataproc Serverless | PySpark 3.5, Runtime 2.2 | Compute | 1 | 0 | 4 | orion/dataproc.md |
 | p1-clean | dataproc | P1.1–P1.7 De-Id and ping cleaning | | Pipeline stage | 0 | 0 | 1 | orion/stage-p1-cleaning.md |
 | p1-stay | dataproc | P1.8–P1.14 Presence and stay clustering | | Pipeline stage | 0 | 1 | 1 | orion/stage-p1-stays.md |
 | p2-home | dataproc | P2 Home assignment and expansion | | Pipeline stage | 0 | 2 | 1 | orion/stage-p2-home.md |
 | p3-index | dataproc | P3 Spacetime-H3 integer indexing | | Pipeline stage | 0 | 3 | 1 | orion/stage-p3-indexing.md |
-| p3-gate | dataproc | P3.15 Privacy gate and release boundary | | Pipeline stage | 0 | 4 | 1 | orion/stage-p3-privacy-gate.md |
+| p3-agg | dataproc | P3 Aggregation with demographics | | Pipeline stage | 0 | 4 | 1 | orion/stage-p3-aggregation.md |
+| p3-gate | dataproc | P3.15 Privacy gate and release boundary | | Pipeline stage | 0 | 5 | 1 | orion/stage-p3-privacy-gate.md |
 | merlin | | Merlin | FourthSpace core platform and engine | Module | 1 | 0 | 1 | merlin/merlin.md |
 | lakehouse | merlin | GCP lakehouse store | gold@datalake4us, Apache Iceberg | Storage | 0 | 0 | 1 | merlin/lakehouse.md |
 | bigquery | merlin | BigQuery | BigLake tables over the Gold Iceberg data | Query engine | 0 | 1 | 1 | merlin/bigquery.md |
@@ -58,7 +60,10 @@ See `README.md` for how to add, move or remove something.
 | p1-clean | p1-stay | CleanPing | data | one |  | arrows/clean-ping.md |
 | p1-stay | p2-home | Presence | data | one |  | arrows/presence.md |
 | p2-home | p3-index | WeightedPresence | data | one |  | arrows/weighted-presence.md |
-| p3-index | p3-gate | CellAggregate | data | one |  | arrows/cell-aggregate.md |
+| reference | p2-home | ReferenceTables | data | one |  | arrows/reference-tables.md |
+| p3-index | p3-agg | IndexedPresence | data | one |  | arrows/indexed-presence.md |
+| reference | p3-agg | DemographicTables | data | one |  | arrows/demographic-tables.md |
+| p3-agg | p3-gate | CellAggregate | data | one |  | arrows/cell-aggregate.md |
 | p3-gate | lakehouse | GoldCommit | gold | one |  | arrows/gold-datasets.md |
 | lakehouse | data-connection | IcebergSnapshot | data | one |  | arrows/arrow-1-data-sync.md |
 | data-connection | virtual-tables | TableRegistration | data | one |  | arrows/table-registration.md |

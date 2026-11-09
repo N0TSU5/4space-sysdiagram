@@ -15,19 +15,19 @@ flowchart LR
   C --> G["Gosper curve rank of the cell"]
   P --> T["Time slot"]
   G & T --> K["Pack into 64-bit spacetime_key"]
-  K --> A["Aggregate per cell and slot"]
+  K --> OUT["Indexed presences to P3 aggregation"]
 ```
 
 ## Software components
 
 - **h3-py** for cells; a FourthSpace `spacetime` library for Gosper ranking and key packing.
-- PySpark aggregations into the Gold table shapes.
+- PySpark column expressions. No joins or aggregation in this stage.
 
 ## Configuration and metadata
 
 - Key layout: high bits are the Gosper rank, low bits the time slot, so nearby cells and times sort together.
 - Time slots: hourly, local time.
-- Aggregations build `footfall`, `dwell`, `composition`, `origin` and `reach` before the gate.
+- Output: one row per presence and H3 resolution, still keyed by `device_key`. The aggregation stage builds the Gold tables.
 
 > **To confirm:** the exact bit split between space and time.
 
@@ -46,16 +46,8 @@ classDiagram
   class GosperRanker {
     +rank(cell) int
   }
-  class Aggregator {
-    +footfall(df) DataFrame
-    +dwell(df) DataFrame
-    +composition(df) DataFrame
-    +origin(df) DataFrame
-    +reach(df) DataFrame
-  }
   IndexStage --> SpacetimeCodec
   SpacetimeCodec --> GosperRanker
-  IndexStage --> Aggregator
 ```
 
 - `SpacetimeCodec.range` is reused by the Analyst agent to build `[k_lo, k_hi]` scans.

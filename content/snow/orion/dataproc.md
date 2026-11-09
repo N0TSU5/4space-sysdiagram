@@ -1,4 +1,4 @@
-Dynamic, auto-scaling compute runtime (PySpark 3.5, Runtime 2.2). It executes the 5 core pipeline stages in temporary worker memory.
+Dynamic, auto-scaling compute runtime (PySpark 3.5, Runtime 2.2). It executes the 6 core pipeline stages in temporary worker memory.
 
 ## Steps
 
@@ -6,6 +6,7 @@ Dynamic, auto-scaling compute runtime (PySpark 3.5, Runtime 2.2). It executes th
 - **P1.8–P1.14 Presence and stay clustering:** group clean pings into classified presences.
 - **P2 Home assignment and expansion:** assign night-time home cells and expansion factors.
 - **P3 Spacetime-H3 indexing:** encode cells and timestamps into a 64-bit `spacetime_key`.
+- **P3 Aggregation with demographics:** join home LSOAs to Census 2021, IoD 2025 and MHIP profiles and build the Gold tables.
 - **P3.15 Privacy gate:** strip `device_key`, enforce the Floor of 5 and round exported counts.
 
 ## Data flow
@@ -17,9 +18,11 @@ flowchart LR
   KEY["snow-hash-secret"] --> S1
   S1 --> S2["P1.8-P1.14 stays"]
   S2 --> S3["P2 home"]
-  LSOA[("ONS LSOA 2021 boundaries")] --> S3
+  REF[("Reference bucket")] -->|"boundaries, population"| S3
   S3 --> S4["P3 index"]
-  S4 --> S5{"P3.15 privacy gate"}
+  S4 --> SA["P3 aggregation"]
+  REF -->|"LSOA profiles"| SA
+  SA --> S5{"P3.15 privacy gate"}
   S5 -->|"pass"| G[("gold@datalake4us")]
   S5 -->|"run report"| WF
 ```
@@ -34,7 +37,7 @@ flowchart LR
 ## Configuration and metadata
 
 - Executors: autoscaling 2 to 100; about 0.5 TB a day fits in under an hour.
-- Service account: read raw bucket and secret, write `gold@datalake4us` only.
+- Service account: read raw bucket, reference bucket and secret, write `gold@datalake4us` only.
 - Private IPs inside the VPC-SC perimeter; no internet egress.
 - Spark settings: `partitionOverwriteMode = dynamic`, adaptive query execution on.
 - Run report: rows in, rows dropped per filter, devices, cells suppressed, rows published.
@@ -58,11 +61,12 @@ classDiagram
   class StayStage
   class HomeStage
   class IndexStage
+  class AggregationStage
   class PrivacyGate
   class RunContext {
     +date
     +hasher KeyedHasher
-    +lsoa DataFrame
+    +reference ReferenceCatalog
     +params SnowParams
   }
   class SnowParams {
@@ -78,6 +82,7 @@ classDiagram
   Stage <|-- StayStage
   Stage <|-- HomeStage
   Stage <|-- IndexStage
+  Stage <|-- AggregationStage
   Stage <|-- PrivacyGate
   Stage ..> RunContext
   RunContext --> SnowParams
