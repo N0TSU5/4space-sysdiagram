@@ -1,6 +1,31 @@
 Once verified by the privacy gate, Orion publishes non-linkable, GDPR-compliant Gold Parquet tables directly into the platform lakehouse store.
 
-## Datasets
+## Payload
+
+**Transport:** Apache Iceberg commit from Spark, `partitionOverwriteMode = dynamic`.
+
+**GoldCommit**
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `table` | string | One of the seven below |
+| `date` | date | Partition replaced |
+| `snapshot_id` | integer | |
+| `row_count` | integer | |
+| `cells_suppressed` | integer | From the gate |
+
+**FootfallRow** (example table)
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `spacetime_key` | int64 | |
+| `h3_res` | integer | |
+| `date` | date | |
+| `slot_id` | string | Hourly |
+| `est_people` | integer | Rounded to 5 |
+| `panel_devices` | integer | At least 5, rounded |
+
+## Tables
 
 - **`footfall`:** Estimated average daily population and raw panel device counts per H3 cell and hourly time slot.
 - **`dwell`:** Cumulative dwell minutes, average stay duration, median (p50), 90th percentile (p90) and stay-share splits.

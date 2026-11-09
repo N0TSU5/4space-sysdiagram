@@ -1,8 +1,14 @@
-The path from the Gold Parquet files in the lakehouse into the `[Snow]` Ontology Graph. Foundry reads the files in place, with no duplicate copies.
+The path from the Gold Parquet files in the lakehouse into the `[Snow]` Ontology Graph. Foundry reads the files in place, with no duplicate copies, and updates as new Gold data arrives.
 
-## Steps
+## Payload
 
-- **GCS Data Connection:** `gs_gold_connection` gives secure, read-only access to `gs://gold@datalake4us`.
-- **Virtual Tables:** schema definitions are registered over the Parquet files, which are read in place.
-- **Ontology mapping:** Ontology Manager maps the tables to `[Snow]` object types and graph links.
-- **Ontology updates:** as new Gold data comes into the lake, updates are written to the Ontology's objects and links.
+**Transport:** Foundry `gs_gold_connection` reading Iceberg metadata and Parquet files.
+
+**IcebergSnapshot**
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `table` | string | |
+| `metadata_location` | string | Current Iceberg metadata file |
+| `snapshot_id` | integer | |
+| `schema` | list of columns | Name and type |

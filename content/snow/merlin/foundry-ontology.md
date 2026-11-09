@@ -12,3 +12,58 @@ Defined in Ontology Manager. New Gold data landing in the lake is written throug
 - `[Snow] Area` to `[Snow] Space-Time Cell`
 - `[Snow] Space-Time Cell` to `[Snow] Footfall`
 - `[Snow] Candidate Site` to `[Snow] Area`
+
+## Data flow
+
+```mermaid
+flowchart LR
+  VT["Virtual Tables"] --> A["[Snow] Area: area_need"]
+  VT --> C["[Snow] Space-Time Cell"]
+  VT --> F["[Snow] Footfall: footfall"]
+  VT --> S["[Snow] Candidate Site: site_recommendation"]
+  A -->|"contains"| C
+  C -->|"has"| F
+  S -->|"serves"| A
+  A & C & F & S -->|"OSDK"| AG["Agents"]
+```
+
+## Software components
+
+- **Foundry Ontology Manager**, **OSDK** (Python).
+
+## Configuration and metadata
+
+- Primary keys: Area `lsoa_code`; Space-Time Cell `st_token` + `slot_id`; Footfall `spacetime_key`; Candidate Site `site_id`.
+- Footfall objects only exist for cells that passed the k ≥ 5 floor.
+
+## Low-level design
+
+```mermaid
+classDiagram
+  class Area {
+    +lsoa_code
+    +name
+    +imd_decile int
+    +need_norm float
+  }
+  class SpaceTimeCell {
+    +st_token
+    +slot_id
+    +window_id
+  }
+  class Footfall {
+    +spacetime_key int
+    +est_people int
+    +panel_devices int
+  }
+  class CandidateSite {
+    +site_id
+    +lat
+    +lon
+    +parking_spaces int
+    +has_power bool
+  }
+  Area "1" --> "*" SpaceTimeCell : contains
+  SpaceTimeCell "1" --> "*" Footfall : has
+  CandidateSite "*" --> "1" Area : serves
+```

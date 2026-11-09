@@ -44,28 +44,29 @@ See `README.md` for how to add, move or remove something.
 - `Direction` is `one` or `both`.
 - `Route` is optional. Use `down` to leave the bottom of the first box, or `top` to
   run above neighbouring boxes.
-- An arrow's file is optional. If that file has a `## Steps` or `## Datasets` list,
-  the list is also shown on the arrow.
+- `Label` is the name of the payload the arrow carries. The arrow's file describes its
+  schema, shown when the arrow is clicked. If that file has a `## Steps` or `## Datasets`
+  list, the list is also shown on the arrow.
 
 | From | To | Label | Kind | Direction | Route | File |
 | --- | --- | --- | --- | --- | --- | --- |
-| raw | scheduler | GCS notification | control | one | | |
-| raw | p1-clean | Raw pings | data | one | | |
-| scheduler | dataproc | Invokes run_period.sh | control | one | | |
-| secrets | p1-clean | snow-hash-secret | secret | one | | |
-| p1-clean | p1-stay | | data | one | | |
-| p1-stay | p2-home | | data | one | | |
-| p2-home | p3-index | | data | one | | |
-| p3-index | p3-gate | | data | one | | |
-| p3-gate | lakehouse | Gold datasets | gold | one | | arrows/gold-datasets.md |
-| lakehouse | data-connection | Arrow 1: zero-copy projection | data | one | | arrows/arrow-1-data-sync.md |
-| data-connection | virtual-tables | | data | one | | |
-| virtual-tables | ontology | | data | one | | |
-| agents | ontology | Arrow 2: read queries | agent | one | | arrows/arrow-2-agent-reasoning.md |
-| planner | analyst | | agent | one | | |
-| analyst | verifier | | agent | one | | |
-| lakehouse | analyst | BigLake range scans | agent | both | down | |
-| planner | chat | Prompts and streamed answers | agent | both | | |
-| verifier | chat | Verified answers and audit logs | agent | one | | |
-| chat | map | Heatmaps and site markers | data | one | | |
-| chat | studio | Briefs, tables, audit traces | data | one | | |
+| raw | scheduler | ObjectFinalized | control | one |  | arrows/object-finalized.md |
+| raw | p1-clean | RawPing | data | one |  | arrows/raw-ping.md |
+| scheduler | dataproc | RunPeriodRequest | control | one |  | arrows/run-period.md |
+| secrets | p1-clean | HmacKey | secret | one |  | arrows/hmac-key.md |
+| p1-clean | p1-stay | CleanPing | data | one |  | arrows/clean-ping.md |
+| p1-stay | p2-home | Presence | data | one |  | arrows/presence.md |
+| p2-home | p3-index | WeightedPresence | data | one |  | arrows/weighted-presence.md |
+| p3-index | p3-gate | CellAggregate | data | one |  | arrows/cell-aggregate.md |
+| p3-gate | lakehouse | GoldCommit | gold | one |  | arrows/gold-datasets.md |
+| lakehouse | data-connection | IcebergSnapshot | data | one |  | arrows/arrow-1-data-sync.md |
+| data-connection | virtual-tables | TableRegistration | data | one |  | arrows/table-registration.md |
+| virtual-tables | ontology | ObjectTypeBinding | data | one |  | arrows/object-type-binding.md |
+| agents | ontology | OntologyQuery | agent | one |  | arrows/arrow-2-agent-reasoning.md |
+| planner | analyst | QueryPlan | agent | one |  | arrows/query-plan.md |
+| analyst | verifier | DraftAnswer | agent | one |  | arrows/draft-answer.md |
+| lakehouse | analyst | RangeScan | agent | both | down | arrows/range-scan.md |
+| planner | chat | Question | agent | both |  | arrows/question.md |
+| verifier | chat | VerifiedAnswer | agent | one |  | arrows/verified-answer.md |
+| chat | map | MapLayer | data | one |  | arrows/map-layer.md |
+| chat | studio | StudioContent | data | one |  | arrows/studio-content.md |
