@@ -1,4 +1,4 @@
-The Analyst reads Gold tables with `spacetime_key` range scans that BigQuery prunes by Parquet row-group metadata.
+The agents, through the Analyst's `range_scan` tool, query BigQuery with `spacetime_key` range scans. BigQuery prunes them by Parquet row-group metadata.
 
 ## Payload
 

@@ -25,6 +25,7 @@ See `README.md` for how to add, move or remove something.
 | p3-gate | dataproc | P3.15 Privacy gate and release boundary | | Pipeline stage | 0 | 4 | 1 | orion/stage-p3-privacy-gate.md |
 | merlin | | Merlin | FourthSpace core platform and engine | Module | 1 | 0 | 1 | merlin/merlin.md |
 | lakehouse | merlin | GCP lakehouse store | gold@datalake4us, Apache Iceberg | Storage | 0 | 0 | 1 | merlin/lakehouse.md |
+| bigquery | merlin | BigQuery | BigLake tables over the Gold Iceberg data | Query engine | 0 | 1 | 1 | merlin/bigquery.md |
 | foundry | merlin | Palantir Foundry | Zero-copy projection into the Ontology | Platform | 1 | 0 | 1 | merlin/foundry.md |
 | data-connection | foundry | 1. GCS Data Connection | gs_gold_connection | Foundry step | 0 | 0 | 1 | merlin/foundry-data-connection.md |
 | virtual-tables | foundry | 2. Virtual Tables | Zero-copy data access | Foundry step | 0 | 1 | 1 | merlin/foundry-virtual-tables.md |
@@ -65,7 +66,8 @@ See `README.md` for how to add, move or remove something.
 | agents | ontology | OntologyQuery | agent | one |  | arrows/arrow-2-agent-reasoning.md |
 | planner | analyst | QueryPlan | agent | one |  | arrows/query-plan.md |
 | analyst | verifier | DraftAnswer | agent | one |  | arrows/draft-answer.md |
-| lakehouse | analyst | RangeScan | agent | both | down | arrows/range-scan.md |
+| lakehouse | bigquery | BigLakeTable | data | one | | arrows/biglake-table.md |
+| agents | bigquery | RangeScan | agent | both | | arrows/range-scan.md |
 | planner | chat | Question | agent | both |  | arrows/question.md |
 | verifier | chat | VerifiedAnswer | agent | one |  | arrows/verified-answer.md |
 | chat | map | MapLayer | data | one |  | arrows/map-layer.md |
